@@ -16,7 +16,7 @@ This is still early in development, and a lot more is to come.
         * Attach To: 
         * Switch to Bridge Adapter
         * Log into machine type ifconfig to get ip addy
-    * Sever still needs to be run as root
+    * Launch the server with sudo 
     * Client can be run as normal user
 
 I have now tested it on:
