@@ -1,7 +1,7 @@
 This is still early in development, and a lot more is to come.  
 
 ##### Requirements:
-* pyftdlib
+* pyftpdlib
 * Sever needs a file on it called 'transfer_file'
 * Right now sever is only setup for port 21
  
