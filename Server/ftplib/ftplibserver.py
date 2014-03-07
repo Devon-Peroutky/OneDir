@@ -126,4 +126,4 @@ if __name__ == '__main__':
         del t
     except NameError:
         pass
-
+    main()
