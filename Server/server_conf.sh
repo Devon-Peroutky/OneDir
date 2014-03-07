@@ -49,6 +49,10 @@ then
         # This is why this script needs root
         `mount --bind $MYPATH/user2/shared_folder/ $MYPATH/user1/shared_folder/`
         
+        # Sets up the database
+        `python2.7 test_server_db.py`
+        `mv Users.db $MYPATH/.`
+        
         # DONE :)
         echo "Test Server ready:"
         echo "Navigate to $MYPATH and run python server.py to start using it."
