@@ -19,6 +19,16 @@ This is still early in development, and a lot more is to come.
     * Launch the server with sudo 
     * Client can be run as normal user
 
+##### Other Notes:
+I added my SqlManager to this:
+* It is based on my hw4 *crawler.py* SqlManager, but in theory better
+* It is still UNTESTED 
+* You should not use SqlManager itself, instead use:
+   * TableAdder, for adding a new table
+   * TableManager, for manipulating tables.  
+* If there are any methods you think we need and you don't want to write them let me know and I will
+
+
 I have now tested it on:
 
 | Server                        | Client                         |
