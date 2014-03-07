@@ -1,6 +1,4 @@
-import os
-import sqlite3 as lite
-from sql_manager import SqlManager
+from sql_manager import TableAdder, TableManager
 from pyftpdlib.authorizers import DummyAuthorizer
 from pyftpdlib.handlers import FTPHandler
 from pyftpdlib.servers import FTPServer
@@ -27,31 +25,81 @@ Write permissions
 """
 
 test_db = 'Test.db'
+table_name = 'users'
+
+
 class MyHandler(FTPHandler):
     def on_login(self, username):
-        print 'This is where we could handle checking for changes between the two systems'
+        """
+        This is where we could handle checking for changes between the two systems
+        """
+        pass
 
+    def on_logout(self, username):
+        """
+        This can remove the instance of the user that was created during validate in MyAuthorize
+        """
+        pass
+
+    # TODO the following are meant to be overwritten as needed.  I am adding them all, but do not have use for them yet
+
+    def on_connect(self):
+        """
+        I don't know yet
+        """
+        pass
+
+    def on_disconnect(self):
+        """
+        I don't know yet
+        """
+        pass
+
+    def on_login_failed(self, username, password):
+        """
+        I don't know yet
+        """
+        pass
+
+    def on_file_sent(self, the_file):
+        """
+        I don't know yet
+        """
+        pass
+
+    def on_file_received(self, the_file):
+        """
+        I don't know yet
+        """
+        pass
+
+    def on_incomplete_file_sent(self, the_file):
+        """
+        I don't know yet
+        """
+        pass
+
+    def on_incomplete_file_received(self, the_file):
+        """
+        I don't know yet
+        """
+        pass
 
 
 class MyAuthorizer(DummyAuthorizer):
     def validate_authentication(self, username, password, handler):
-        # Connect to database and check for username and password, if exists add the user. 
-        # This does not actually check for the password, or work the way I want it too..
-        # More of just a proof
-        s = SqlManager(test_db)
-        s.connect()
-        user_list = s.pull('users', None)
-        s.disconnect()
-        user_names = [un[0] for un in user_list] 
+        """
+        Overriding the systems checks in place of our own. So that we can use table management.
+        """
+        tm = TableManager(test_db, table_name)
+        user_list = tm.pull()
+        user_names = [un[0] for un in user_list]
         if username in user_names:
-            i = user_names.index(username)
-            if user_list[0][1] == password:
+            user_index = user_names.index(username)
+            if user_list[user_index][1] == password:
                 super(MyAuthorizer, self).add_user(username, password, '.', perm='elradfmwM')
         super(MyAuthorizer, self).validate_authentication(username, password, handler)
-        # Still to do delete this after connection is closed   
- 
-    def has_user(self, username):
-        return super(MyAuthorizer, self).has_user(username)
+
 
 def main():
     authorizer = MyAuthorizer()
@@ -64,16 +112,18 @@ def main():
     server.max_cons_per_ip = 5
     server.serve_forever()
 
+
 if __name__ == '__main__':
-    s = SqlManager(test_db)
-    data = [('username', 'text'),('password', 'text')]
-    s.connect()
-    try:  # Table already exists
-        s.add_new_table('users', data)
-        s.push('users', ['user', '12345'])
-        s.push('users', ['another', 'abc'])
-    except lite.OperationalError:
+    try:
+        t = TableAdder(test_db, table_name)
+        t.add_column('username', 'text')
+        t.add_column('password', 'text')
+        t.commit()
+        del t
+        t = TableManager(test_db, table_name)
+        t.quick_push(['user', '12345'])
+        t.quick_push(['user2', 'abcd'])
+        del t
+    except NameError:
         pass
-    s.disconnect()
-    main()
 
