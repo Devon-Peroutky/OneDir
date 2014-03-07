@@ -7,15 +7,8 @@ from pyftpdlib.servers import FTPServer
 
 """
 This needs to be run as Root
-
-Note this is almost exactly the sample code from the pyftpdlib website
-
-I noticed that I had problems with this running them out of virtual machines with port forwarding
-It would connect on port 20/21 but with certain requests it would pick to send back information on a 
-different port.  Without knowing that port ahead of time the infomation would be set to the host machine
-and cause the program to fail. 
-
 """
+
 """
 Commands:
 Read permissions:
@@ -61,11 +54,7 @@ class MyAuthorizer(DummyAuthorizer):
         return super(MyAuthorizer, self).has_user(username)
 
 def main():
-    # authorizer = DummyAuthorizer()
     authorizer = MyAuthorizer()
-    # authorizer.add_user('user', '12345', '.', perm='elradfmwM')
-    # authorizer.add_anonymous(os.getcwd())
-    # handler = FTPHandler
     handler = MyHandler
     handler.authorizer = authorizer
     handler.banner = "Welcome to back to OneDir... I don't like that name"
