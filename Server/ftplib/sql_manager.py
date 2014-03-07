@@ -1,3 +1,7 @@
+__author__ = 'Justin Jansen'
+__status__ = 'Development'
+__date__ = '03/07/14'
+
 import sqlite3 as lite
 
 """

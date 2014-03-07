@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Justin Jansen
+# 3/7/14
+
 # This needs root access, be careful with it.
 # It calls: 
 # rm -r -f $MYPATH

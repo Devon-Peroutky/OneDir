@@ -1,3 +1,7 @@
+__author__ = 'Justin Jansen'
+__status__ = 'Prototype'
+__date__ = '03/07/14'
+
 from sql_manager import TableAdder, TableManager
 from pyftpdlib.authorizers import DummyAuthorizer
 from pyftpdlib.handlers import FTPHandler
