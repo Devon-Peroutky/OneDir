@@ -5,14 +5,28 @@ __date__ = '03/07/14'
 import sqlite3 as lite
 
 """
-This is mostly untested! Use at your own risk! :)
-Or test it for me ;)
 
-Based on my Homework 4 (crawler.py) SqlManager... which was tested... so it should be pretty safe
+SqlManager(database_name)
+    - The parent class to all other classes in sql_manager.py
+TableAdder(database_name, table_name)
+    - A tool for adding new tables to the database
+TableRemover(database_name, table_name)
+    - A tool for deleting tables from the database
+TableManager(database_name, table_name)
+    - Manages common database tasks such as adding and removing items from a table
+    - Likely that other methods will be useful.
+    - Will write them as needed
+
+These are still untested.
+
 """
 
 
 class SqlManager(object):
+    """
+    The parent manager, meant to be extended, not used unless the job
+    is really unique and it is simpler to use this.
+    """
     def __init__(self, database_name):
         self.name = database_name.split('.')[0]
         self.tables = self._pull_tables()
@@ -62,6 +76,10 @@ class SqlManager(object):
 
 
 class TableAdder(SqlManager):
+    """
+    Adds a table to a database, the database does not need to
+    exist before invoking this.
+    """
     def __init__(self, database_name, table_name):
         super(TableAdder, self).__init__(database_name)
         if table_name in self.tables:
@@ -69,12 +87,17 @@ class TableAdder(SqlManager):
         self.table_name = table_name
         self.table_columns = []
         self.done = False
+        self.sql_types = ['integer', 'text', 'real', 'blob']
 
     def add_column(self, name, col_type='text'):
         """
         Defines a column to add to the table
         """
-        self.table_columns += [(name, col_type)]
+        col_type = str(col_type).lower()
+        if col_type in self.sql_types:
+            self.table_columns += [(name, col_type)]
+        else:
+            raise ValueError('Undefined column type')
 
     def commit(self):
         """
@@ -92,11 +115,39 @@ class TableAdder(SqlManager):
             self.done = True
 
 
-class TableManager(SqlManager):
+class TableRemover(SqlManager):
+    """
+    Deletes a table from the database
+    """
     def __init__(self, database_name, table_name):
+        """
+        @raises NameError: table not found
+        """
+        super(TableRemover, self).__init__(database_name)
+        if not table_name in self.tables:
+            raise NameError('Table ' + table_name + ' not in database')
+        self._delete_table(table_name)
+
+    def _delete_table(self, table_name):
+        command = 'DROP TABLE IF EXISTS ' + table_name + ';'
+        self.connect()
+        self._no_fetch_command(command)
+        self.disconnect()
+
+
+class TableManager(SqlManager):
+    """
+    Handles pulls and pushes from a table in the database.
+    Can now handle 'with'
+    """
+    def __init__(self, database_name, table_name):
+        """
+        @raises NameError: The table is not in the database
+        """
         super(TableManager, self).__init__(database_name)
         if not table_name in self.tables:
             raise NameError('Table not found in database')
+        self.connect()
         self.table_name = table_name
         self.table_col_names = []
         self.table_col_type = []
@@ -107,45 +158,58 @@ class TableManager(SqlManager):
         Gets information that the program needs about the table
         """
         command = 'pragma table_info("' + self.table_name + '");'
-        self.connect()
         raw_data = self._fetch_command(command)
         for column in raw_data:
             self.table_col_names += [str(column[1])]
             self.table_col_type += [str(column[2])]
-        self.disconnect()
 
     def quick_push(self, value_list):
         """
         Assumes that you already know the order and type
         So you can just feed it a list
         @param value_list: A list of values to insert into the table
+        @raises ValueError: If the list is the wrong length
         """
         if len(value_list) == len(self.table_col_names):
             command = "INSERT INTO " + self.table_name + " VALUES"
             command = command + '(' + str(value_list).strip('[').strip(']') + ');'
-            self.connect()
             self._no_fetch_command(command)
-            self.disconnect()
         else:
             raise ValueError('value_list does not match columns')
 
-    def push(self, tuple_list):
+    def push(self, tuple_list):  # TODO completely untested
         """
-        A safer push that checks column names and converts the types before trying to push to the table
+        A safer push that checks column names and converts the types before trying to push to the table.
+        Columns can be inserted in any order.
+        Not every column needs to be filled.
         @param tuple_list: a list in the format [(column_name, value_to_insert), ... ]
         """
-        # TODO
-        pass
+        unordered = [x[0] for x in tuple_list]
+        push_list = []
+        for i, value in enumerate(self.table_col_names):
+            if value in unordered:
+                to_add = tuple_list[unordered.index(value)][1]
+                col_type = self.table_col_type[i]
+                col_type = str(col_type).lower()
+                if col_type == 'text':
+                    push_list += [str(to_add)]
+                elif col_type == 'integer':
+                    push_list += [int(to_add)]
+                elif col_type == 'real':
+                    push_list += [float(to_add)]
+                elif col_type == 'blob':
+                    push_list += [buffer(to_add)]
+            else:
+                push_list += [None]
+        self.quick_push(push_list)
 
     def clear_table(self):
         """
         Makes the table empty
         """
-        self.connect()
         command = "DELETE FROM " + self.table_name + ';'
         self._no_fetch_command(command)
         self._no_fetch_command("VACUUM;")
-        self.disconnect()
 
     def pull(self, row_list=None):
         """
@@ -153,7 +217,6 @@ class TableManager(SqlManager):
         @param row_list: The rows to get, if left as None it will return all rows
         @return: The data from the table
         """
-        self.connect()
         command = "SELECT "
         if not row_list:
             command += "* "
@@ -164,5 +227,25 @@ class TableManager(SqlManager):
             command = command[:-2]
         command += " FROM " + self.table_name + ';'
         values = self._fetch_command(command)
-        self.disconnect()
+        for i, the_type in self.table_col_type:  # TODO Untested
+            if the_type == 'text':
+                values[i] = str(values[i])
+            elif the_type == 'integer':
+                values[i] = int(values[i])
+            elif the_type == 'real':
+                values[i] = float(values[i])
+            elif the_type == 'blob':
+                values[i] = buffer(values[i])
         return values
+
+    def __enter__(self):
+        """
+        For 'with'
+        """
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """
+       For 'with'
+        """
+        self.disconnect()

@@ -1,7 +1,7 @@
 __author__ = 'justin'
 
-from helpers import n_eq, n_ok
-from example_file import Foo, baz
+from extra.testhelper.helpers import n_eq, n_ok
+from extra.testhelper.example_file import Foo, baz
 
 def test_method():
     """
