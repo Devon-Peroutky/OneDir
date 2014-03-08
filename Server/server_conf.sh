@@ -52,7 +52,12 @@ then
         # Sets up the database
         `python2.7 test_server_db.py`
         `mv Users.db $MYPATH/.`
-        
+       
+        # Creates a server map
+        touch server_map.txt
+        `find $MYPATH >> server_map.txt`
+        `mv server_map.txt $MYPATH/.`        
+         
         # DONE :)
         echo "Test Server ready:"
         echo "Navigate to $MYPATH and run python server.py to start using it."
