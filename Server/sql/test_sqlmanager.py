@@ -1,279 +1,140 @@
+import os
+import sqlite3 as lite
+from sql_manager import SqlManager
+from extra.testhelper.helpers import n_eq, n_ok
+
 __author__ = 'Justin Jansen'
 __status__ = 'Testing'
 __date__ = '03/08/14'
 
-from nose.tools import with_setup, raises
-from extra.testhelper.helpers import n_eq, n_ok
+"""
+All tests here are passing.
+Feel free to add whatever you want.
+
+Coverage will be ran when test table managers is completed
+"""
 
 
-class ToDoError(Exception):  # TODO delete after test have been written
+class SetupError(Exception):
     """
-    For unwritten tests
+    If setup module fails this will be raised and it will stop the tests
+    from being run.
     """
     pass
+
 
 db_name = 'Testing.db'
 table_name = 'abc'
 
 
-def setup_sm():
-    raise ToDoError
+def setup_module():
+    """
+    Creates a simple table and adds enough information to run following tests
+    """
+    failed = False
+    con = None
+    try:
+        con = lite.connect(db_name)
+        cur = con.cursor()
+        command = 'CREATE TABLE ' + table_name + ' (col_one text, col_two text, col_three text);'
+        cur.execute(command)
+        con.commit()
+        command = 'INSERT INTO ' + table_name + ' VALUES("one", "two", "three");'
+        cur.execute(command)
+        con.commit()
+    except lite.DatabaseError, e:
+        print e.message
+        failed = True
+    finally:
+        if con:
+            con.close()
+    if failed:
+        raise SetupError('')
 
 
-def teardown_sm():
-    raise ToDoError
-
-
-@with_setup(setup_sm, teardown_sm)
 def test_sm_connect_new_db():
     """
     Tries to connect to a db that does not exists
     """
-    raise ToDoError
+    db = 'test_2.db'
+    s = SqlManager(db)
+    actual = os.path.isfile(db)
+    if actual:
+        os.remove(db)
+    del s
+    n_ok(actual, message='test_2.db was not created')
 
 
-@with_setup(setup_sm, teardown_sm)
 def test_sm_connect_existing_db():
     """
     Tries to connect to a db that already exists
     """
-    raise ToDoError
+    s = SqlManager(db_name)
+    s.connect()
+    actual = s.con is None
+    s.disconnect()
+    n_ok(not actual, s, 'connect')
 
 
-@with_setup(setup_sm, teardown_sm)
 def test_sm_disconnect():
     """
     Checks that the db is disconnecting properly
     """
-    raise ToDoError
+    s = SqlManager(db_name)
+    s.connect()
+    s.disconnect()
+    actual = s.con is None
+    n_ok(actual, s, 'disconnect')
 
 
-@with_setup(setup_sm, teardown_sm)
 def test_sm_pull_tables():
     """
     Checks that pull tables is retrieving all the tables
     """
-    raise ToDoError
+    s = SqlManager(db_name)
+    actual = s.tables[0]
+    expected = table_name
+    n_eq(expected, actual, s, '_pull_tables')
 
 
-@with_setup(setup_sm, teardown_sm)
 def test_sm_fetch_command():
     """
     Checks that the db can run a fetch command
     """
-    raise ToDoError
+    command = 'SELECT * FROM ' + table_name + ';'
+    s = SqlManager(db_name)
+    s.connect()
+    data = s._fetch_command(command)[0]
+    s.disconnect()
+    actual = [str(col) for col in data]
+    expected = ['one', 'two', 'three']
+    n_eq(expected, actual, s, '_fetch_command')
 
 
-@with_setup(setup_sm, teardown_sm)
 def test_sm_no_fetch_command():
     """
     Checks that the table can run a no fetch command
     """
-    raise ToDoError
+    expected = ['a', 'b', 'c']
+    command = 'INSERT INTO ' + table_name + ' VALUES(' + str(expected)[1:-1] + ');'
+    print command
+    s = SqlManager(db_name)
+    s.connect()
+    s._no_fetch_command(command)
+    s.disconnect()
+    con = lite.connect(db_name)
+    cur = con.cursor()
+    command = 'SELECT * FROM ' + table_name + ';'
+    cur.execute(command)
+    fetched = cur.fetchall()
+    fetched = fetched[1]
+    actual = [str(col) for col in fetched]
+    n_eq(expected, actual, s, '_no_fetch_command', message='Good chance that I did not setup test right')
 
 
-def setup_ta():
-    raise ToDoError
-
-
-def teardown_ta():
-    raise ToDoError
-
-
-@with_setup(setup_ta, teardown_ta)
-def test_ta_exists():
+def teardown_module():
     """
-    Checks it can find a table that exists
+    Deletes the table after tests have been completed
     """
-    raise ToDoError
-
-
-@raises(NameError)
-@with_setup(setup_ta, teardown_ta)
-def test_ta_not_exists():
-    """
-    Checks that it raise a name error if the table does not exists
-    """
-    raise ToDoError
-
-
-@with_setup(setup_ta, teardown_ta)
-def test_ta_add_column():
-    """
-    Checks that the column is added
-    """
-    raise ToDoError
-
-
-@with_setup(setup_ta, teardown_ta)
-def test_ta_add_column_bad_type():
-    """
-    Checks that it rejects unknown types
-    """
-    raise ToDoError
-
-
-@with_setup(setup_ta, teardown_ta)
-def test_ta_commit():
-    """
-    Checks that the table is added to the database
-    @precondition: SqlManager all test - Pass
-    """
-    raise ToDoError
-
-
-def setup_tr():
-    raise ToDoError
-
-
-def teardown_tr():
-    raise ToDoError
-
-
-@with_setup(setup_tr, teardown_tr)
-def test_tr_exists():
-    """
-    Test it can remove a table that exists
-    """
-    raise ToDoError
-
-
-@raises(NameError)
-@with_setup(setup_tr, teardown_tr)
-def test_tr_not_exits():
-    """
-    Test that NameError is called if the table does not exists
-    """
-    raise ToDoError
-
-
-def setup_tm():
-    raise ToDoError
-
-
-def teardown_tm():
-    raise ToDoError
-
-
-@with_setup(setup_tm, teardown_tm)
-def test_tm_exists():
-    """
-    Tries to connect to a table that exists
-    """
-    raise ToDoError
-
-
-@raises(NameError)
-@with_setup(setup_tm, teardown_tm)
-def test_tm_not_exists():
-    """
-    Tries to connect to a table that does not exist
-    """
-    raise ToDoError
-
-
-@with_setup(setup_tm, teardown_tm)
-def test_tm_with_enter():
-    """
-    Checks that with enter is being called
-    """
-    raise ToDoError
-
-
-@with_setup(setup_tm, teardown_tm)
-def test_tm_with_exit():
-    """
-    Checks that with exit is called when there are no errors
-    """
-    raise ToDoError
-
-
-@with_setup(setup_tm, teardown_tm)
-def test_tm_with_exit_error():
-    """
-    Test that with exit will be called even if there is an error
-    """
-    raise ToDoError
-
-
-@with_setup(setup_tm, teardown_tm)
-def test_get_column_info():
-    """
-    Check that the method retrieves the correct info, and is formatted correctly
-    """
-    raise ToDoError
-
-
-@with_setup(setup_tm, teardown_tm)
-def test_tm_good_quick_push():
-    """
-    Checks that data is being written with a good push
-    """
-    raise ToDoError
-
-
-@raises(ValueError)
-@with_setup(setup_tm, teardown_tm)
-def test_():
-    """
-    Checks that the push is rejected when the data is wrong
-    """
-    raise ToDoError
-
-
-@with_setup(setup_tm, teardown_tm)
-def test_tm_sorted_good_push():
-    """
-    Tries to push a list where the columns are already in order with good info
-    """
-    raise ToDoError
-
-
-@with_setup(setup_tm, teardown_tm)
-def test_tm_unsorted_good_push():
-    """
-    Tries to sort the list of good info and then push it
-    """
-    raise ToDoError
-
-
-@raises(ValueError)
-@with_setup(setup_tm, teardown_tm)
-def test_tm_push_bad_info():
-    """
-    I am not sure that value error is right
-    Tries to push non matching data to the db
-    """
-    raise ToDoError
-
-
-@with_setup(setup_tm, teardown_tm)
-def test_tm_clear_table():
-    """
-    Tries to clear the table of all data
-    """
-    raise ToDoError
-
-
-@with_setup(setup_tm, teardown_tm)
-def test_tm_easy_pull():
-    """
-    Tries to pull all the columns where every type is text
-    """
-    raise ToDoError
-
-
-@with_setup(setup_tm, teardown_tm)
-def test_tm_medium_pull():
-    """
-    Tries to pull all the columns were there are different types
-    """
-    raise ToDoError
-
-
-@with_setup(setup_tm, teardown_tm)
-def test_hard_pull():
-    """
-    Tries to some of the columns and have different types
-    """
-    raise ToDoError
+    if os.path.isfile(db_name):
+        os.remove(db_name)
