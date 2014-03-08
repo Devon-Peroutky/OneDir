@@ -2,10 +2,12 @@ __author__ = 'Justin Jansen'
 __status__ = 'Prototype'
 __date__ = '03/07/14'
 
-from sql_manager import TableAdder, TableManager
 from pyftpdlib.authorizers import DummyAuthorizer
 from pyftpdlib.handlers import FTPHandler
 from pyftpdlib.servers import FTPServer
+
+from Server.sql.sql_manager import TableAdder, TableManager
+
 
 """
 This needs to be run as Root

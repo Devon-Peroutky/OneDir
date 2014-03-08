@@ -19,10 +19,11 @@ needed too.
 
 """
 
+
 class ClientDemo:
-    def __init__(self, host, port, username='user', password='12345'):
+    def __init__(self, host, port_num, username='user', password='12345'):
         self.host = host
-        self.port = port
+        self.port = port_num
         self.username = username
         self.password = password
         self.ftp = FTP()
@@ -30,7 +31,7 @@ class ClientDemo:
     def connect(self):
         """
         Just connects to the server
-        This will have trys and catches and what nots
+        This will have tries and catches and what not
         """
         self.ftp.connect(self.host, self.port)
         self.ftp.login(self.username, self.password)
@@ -84,10 +85,13 @@ class ClientDemo:
             w.write(text)
         self.ftp.storlines("STOR uploaded_file.txt", open('upload_file', 'rb'))
 
+
 if __name__ == '__main__':
     print 'Make sure you have your sever on! :)'
-    addy = raw_input('Input address: ' )
-    port = raw_input('Input port... I have the server configured to run on 21: ')
+    # addy = raw_input('Input address: ')
+    # port = raw_input('Input port... I have the server configured to run on 21: ')
+    addy = '10.0.0.6'
+    port = '21'
     c = ClientDemo(addy, port)
     c.connect()
     print 'Print stuff'

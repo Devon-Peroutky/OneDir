@@ -61,7 +61,7 @@ def setup_module():
         raise SetupError('Setup File not found: more info in std.out')
     check_list = ['ip', 'port', 'user', 'pass', 'dir', 'server_map']
     loaded_file = {}  # TODO
-    for key, value in loaded_file:
+    for key, value in loaded_file:  # TODO fix
         if not key in check_list:
             raise SetupError('Incorrect config file' + key + ' not found.')
     server_ip = loaded_file['ip']
