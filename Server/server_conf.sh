@@ -17,8 +17,6 @@
 
 if [ `whoami` == "root" ]
 then 
-
-    # What command line arg?
     if [ "$1" == "make" ]
     then
         # Create a root folder
@@ -32,21 +30,19 @@ then
         `mkdir $MYPATH/user1`;
         `mkdir $MYPATH/user1/upload_to`;
         `mkdir $MYPATH/user1/download_from`;
-        # Make the shared folder for both users
         `mkdir $MYPATH/user1/shared_folder`;        
         `mkdir $MYPATH/user2`;
         `mkdir $MYPATH/user2/shared_folder`;
 
-        # Create a few files
         # Create a file to test downloading, add some text to it
         `touch $MYPATH/user1/download_from/to_download.txt`;
         `echo "This is some text in to_download.txt" >> $MYPATH/user1/download_from/to_download.txt`;
+        
         # In USER2: create a file to share, add some text to it
         `touch $MYPATH/user2/shared_folder/shared_file.txt`;
         `echo "This is text shared_file.txt" >> $MYPATH/user2/shared_folder/shared_file.txt`;
 
-        # Share the files between the two users
-        # This is why this script needs root
+        # Share the files between the two users, This is why this script needs root
         `mount --bind $MYPATH/user2/shared_folder/ $MYPATH/user1/shared_folder/`
         
         # Sets up the database
@@ -56,11 +52,11 @@ then
         # Creates a server map
         touch server_map.txt
         `find $MYPATH >> server_map.txt`
+        `python2.7 map_fixer.py $MYPATH server_map.txt`
         `mv server_map.txt $MYPATH/.`        
          
-        # DONE :)
-        echo "Test Server ready:"
-        echo "Navigate to $MYPATH and run python server.py to start using it."
+        echo "Server ready. Navigate to $MYPATH and run python server.py to start using it."
+    
     elif [ "$1" == "delete" ]
     then 
         MYPATH=`readlink -f ../../testing_server`
@@ -72,9 +68,11 @@ then
         `rm -r -f $MYPATH`
 
         echo "All files in $MYPATH have been deleted"
+    
     else
         echo "Command line arguments are 'make' or 'delete'"
     fi
+
 else 
     echo "This program need to be run as root (sudo)"
     echo "Command line arguments are 'make' or 'delete'"
