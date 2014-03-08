@@ -18,6 +18,7 @@ def main():
     ta.commit()
     del ta
     tm = TableManager(db_name, table_name)
+    tm.quick_push(['admin', 'admin', '.'])
     tm.quick_push(['user1', '123', '/user1'])
     tm.quick_push(['user2', 'abc', '/user2'])
     del tm
