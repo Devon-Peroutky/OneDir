@@ -211,7 +211,7 @@ class TableManager(SqlManager):
         self._no_fetch_command(command)
         self._no_fetch_command("VACUUM;")
 
-    def pull(self, row_list=None):
+    def pull(self, row_list=None): # TODO FIX THIS
         """
         Get data from the database
         @param row_list: The rows to get, if left as None it will return all rows
