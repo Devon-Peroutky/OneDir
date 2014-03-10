@@ -6,7 +6,7 @@ from pyftpdlib.authorizers import DummyAuthorizer
 from pyftpdlib.handlers import FTPHandler
 from pyftpdlib.servers import FTPServer
 
-from Server.sql.sql_manager import TableAdder, TableManager
+from sql.sql_manager import TableAdder, TableManager
 
 
 """
@@ -15,6 +15,7 @@ This needs to be run as Root
 
 """
 Commands:
+
 Read permissions:
 "e" = change directory (CWD, CDUP commands)
 "l" = list files (LIST, NLST, STAT, MLSD, MLST, SIZE commands)
@@ -33,19 +34,22 @@ Write permissions
 test_db = 'Users.db'
 table_name = 'users'
 
+authorizer = None
+handler = None
 
 class MyHandler(FTPHandler):
     def on_login(self, username):
         """
         This is where we could handle checking for changes between the two systems
         """
-        pass
+        print username, 'login'
 
     def on_logout(self, username):
         """
         This can remove the instance of the user that was created during validate in MyAuthorize
         """
-        pass
+        # authorizer.remove_user(username)
+        print username, 'logout'
 
     # TODO the following are meant to be overwritten as needed.  I am adding them all, but do not have use for them yet
 
@@ -53,43 +57,43 @@ class MyHandler(FTPHandler):
         """
         I don't know yet
         """
-        pass
+        print 'connect'
 
     def on_disconnect(self):
         """
         I don't know yet
         """
-        pass
+        print 'disconnect'
 
     def on_login_failed(self, username, password):
         """
         I don't know yet
         """
-        pass
+        print username, 'failed login'
 
     def on_file_sent(self, the_file):
         """
         I don't know yet
         """
-        pass
+        print 'file sent'
 
     def on_file_received(self, the_file):
         """
         I don't know yet
         """
-        pass
+        print 'file received'
 
     def on_incomplete_file_sent(self, the_file):
         """
         I don't know yet
         """
-        pass
+        print 'incomplete file sent'
 
     def on_incomplete_file_received(self, the_file):
         """
         I don't know yet
         """
-        pass
+        print 'incomplete file received'
 
 
 class MyAuthorizer(DummyAuthorizer):  # TODO remove prints
@@ -98,16 +102,20 @@ class MyAuthorizer(DummyAuthorizer):  # TODO remove prints
         Overriding the systems checks in place of our own. So that we can use table management.
         """
         tm = TableManager(test_db, table_name)
-        user_list = tm.pull_where('username', username, '=')
-        print user_list
+        user_list = tm.pull_where('username', str(username), '=')
         user_list = user_list[0]
         if user_list:
             if user_list[1] == password:
-                super(MyAuthorizer, self).add_user(username, password, '.', perm='elradfmwM')
+                try:
+                    super(MyAuthorizer, self).add_user(username, password, user_list[2], perm='elradfmwM')
+                except ValueError:
+                    print 'I need a better solution then this'
         super(MyAuthorizer, self).validate_authentication(username, password, handler)
 
 
 def main():
+    global authorizer
+    global handler
     authorizer = MyAuthorizer()
     handler = MyHandler
     handler.authorizer = authorizer
