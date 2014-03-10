@@ -19,8 +19,8 @@ def main():
     del ta
     with TableManager(db_name, table_name) as tm:
         tm.quick_push(['admin', 'admin', '.'])
-        tm.quick_push(['user1', '123', '/user1'])
-        tm.quick_push(['user2', 'abc', '/user2'])
+        tm.quick_push(['user1', '123', 'user1'])
+        tm.quick_push(['user2', 'abc', 'user2'])
 
 
 if __name__ == '__main__':
