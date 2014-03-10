@@ -60,7 +60,7 @@ then
         `mv server_map.txt $MYPATH/.`        
    
         # Read Write permission because this was created as root, dont really need it but... it's nice
-        `chmod -R $MYPATH a+rw`
+        `chmod -R a+rw $MYPATH`
       
         echo "Server ready. Navigate to $MYPATH and run python server.py to start using it."
     
