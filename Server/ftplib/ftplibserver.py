@@ -30,7 +30,7 @@ Write permissions
 
 """
 
-test_db = 'Test.db'
+test_db = 'Users.db'
 table_name = 'users'
 
 
@@ -92,17 +92,17 @@ class MyHandler(FTPHandler):
         pass
 
 
-class MyAuthorizer(DummyAuthorizer):
+class MyAuthorizer(DummyAuthorizer):  # TODO remove prints
     def validate_authentication(self, username, password, handler):
         """
         Overriding the systems checks in place of our own. So that we can use table management.
         """
         tm = TableManager(test_db, table_name)
-        user_list = tm.pull()
-        user_names = [un[0] for un in user_list]
-        if username in user_names:
-            user_index = user_names.index(username)
-            if user_list[user_index][1] == password:
+        user_list = tm.pull_where('username', username, '=')
+        print user_list
+        user_list = user_list[0]
+        if user_list:
+            if user_list[1] == password:
                 super(MyAuthorizer, self).add_user(username, password, '.', perm='elradfmwM')
         super(MyAuthorizer, self).validate_authentication(username, password, handler)
 
@@ -111,25 +111,12 @@ def main():
     authorizer = MyAuthorizer()
     handler = MyHandler
     handler.authorizer = authorizer
-    handler.banner = "Welcome to back to OneDir... I don't like that name"
+    handler.banner = "Welcome to back to OneDir"
     address = ('', 21)
     server = FTPServer(address, handler)
     server.max_cons = 256
     server.max_cons_per_ip = 5
     server.serve_forever()
 
-
 if __name__ == '__main__':
-    try:
-        t = TableAdder(test_db, table_name)
-        t.add_column('username', 'text')
-        t.add_column('password', 'text')
-        t.commit()
-        del t
-        t = TableManager(test_db, table_name)
-        t.quick_push(['user', '12345'])
-        t.quick_push(['user2', 'abcd'])
-        del t
-    except NameError:
-        pass
     main()
