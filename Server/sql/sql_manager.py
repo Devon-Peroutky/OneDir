@@ -242,7 +242,10 @@ class TableManager(SqlManager):
             cols = '*'
         else:
             cols = ','.join(col_list)
-        comp = str(value) + str(operator) + str(compare_to)
+        if type(compare_to) == str:
+            comp = "%s%s'%s'" % (str(value), str(operator), str(compare_to))
+        else:
+            comp = "%s%s%s" % (str(value), str(operator), str(compare_to))
         command = 'SELECT %s FROM %s WHERE %s;' % (cols, self.table_name, comp)
         return self._fetch_command(command)
 
