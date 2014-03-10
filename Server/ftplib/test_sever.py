@@ -1,6 +1,9 @@
 import os
 import json
+from ftplib import FTP
 from nose.tools import with_setup
+from extra.testhelper.helpers import n_eq, n_ok
+
 
 """
 
@@ -24,10 +27,8 @@ __date__ = '03/07/14'
 # Needs server login credentials
 server_ip = None
 port_num = None
-username = None
-password = None
-user_dir = None
-server_map = None  # TODO i am not sure how i am going to do this
+users = None
+server_map = None
 
 
 class SetupError(Exception):
@@ -50,63 +51,86 @@ def setup_module():
     Loads file and checks to see if it is even possible to connect to the server.
     If file not found, or can not connect will throw error and no tests will be run.
     """
-    global server_ip
-    global port_num
-    global username
-    global password
-    global user_dir
-    global server_map
     if not os.path.isfile('server_config.txt'):
-        # TODO TEMPLATE
         raise SetupError('Setup File not found: more info in std.out')
-    check_list = ['ip', 'port', 'user', 'pass', 'dir', 'server_map']
-    loaded_file = {}  # TODO
-    for key, value in loaded_file:  # TODO fix
-        if not key in check_list:
-            raise SetupError('Incorrect config file' + key + ' not found.')
-    server_ip = loaded_file['ip']
-    port_num = loaded_file['port']
-    username = loaded_file['user']
-    password = loaded_file['pass']
-    user_dir = loaded_file['dir']
-    # TODO connect
-
-# TODO i might need a teardown also if i start dumping out files.
+    with open('server_config.txt') as jd:
+        global server_ip
+        global port_num
+        global users
+        config = json.load(jd)
+        server_ip = str(config['ip'])
+        port_num = str(config['port'])
+        users = config['users']
+        ftp = FTP()
+        ftp.connect(server_ip, port_num)
+        del ftp
 
 
-def connect_server():
-    raise ToDoError
+callbacks = []
 
 
-def disconnect_server():
-    raise ToDoError
+def setup_callback():
+    global callbacks
+    callbacks = []
 
 
-@with_setup(connect_server, disconnect_server)
+def general_callback(ret_val):
+    global callbacks
+    callbacks += [ret_val]
+
+
+def test_get_welcome():
+    ftp = FTP()
+    ftp.connect(server_ip, port_num)
+    actual = ftp.getwelcome().split(' ')
+    actual = actual[1:]
+    actual = ' '.join(actual)
+    expected = "Welcome to back to OneDir"
+    n_eq(expected, actual)
+
+
 def test_pwd():
     """
     Checks starting dir
+    Should log in as admin in the root dir
     """
-    raise ToDoError
+    ftp = FTP()
+    un = users.keys()[0]
+    pw = str(users[un][0])
+    ftp.connect(server_ip, port_num)
+    ftp.login(str(un), str(pw))
+    actual = ftp.pwd()
+    expected = '/'
+    n_eq(expected, actual)
 
-
-@with_setup(connect_server, disconnect_server)
-def test_cd():
-    """
-    Checks change dir
-    """
-    raise ToDoError
-
-
-@with_setup(connect_server, disconnect_server)
+@with_setup(setup_callback)
 def test_ls():
     """
     Checks that the files in a dir can be printed
     """
+    ftp = FTP()
+    un = users.keys()[1]
+    pw = str(users[un][0])
+    ftp.connect(server_ip, port_num)
+    ftp.login(str(un), str(pw))
+    ftp.retrlines('NLST', general_callback)
+    actual = callbacks[0]
+    expected = 'shared_folder'
+    n_eq(expected, actual)
+
+
+def test_cd():
+    """
+    Checks change dir
+    """
+    ftp = FTP()
+    un = users.keys()[2]
+    pw = str(users[un][0])
+    ftp.connect(server_ip, port_num)
+    ftp.login(str(un), str(pw))
     raise ToDoError
 
 
-@with_setup(connect_server, disconnect_server)
 def test_alternate_user():
     """
     Uses alternate login credentials, and checks that start in different dir
@@ -114,7 +138,6 @@ def test_alternate_user():
     raise ToDoError
 
 
-@with_setup(connect_server, disconnect_server)
 def test_download():
     """
     Tries to download a file
@@ -122,7 +145,6 @@ def test_download():
     raise ToDoError
 
 
-@with_setup(connect_server, disconnect_server)
 def test_upload():
     """
     Tries to upload a file
@@ -130,7 +152,6 @@ def test_upload():
     raise ToDoError
 
 
-@with_setup(connect_server, disconnect_server)
 def test_shares():
     """
     Uploads a file into a shared folder of one user, and downloads it with the other.
@@ -140,7 +161,6 @@ def test_shares():
     raise ToDoError
 
 
-@with_setup(connect_server, disconnect_server)
 def test_interrupt_down():
     """
     Kills the connection and Download, Checks that it is handled gracefully.
@@ -149,7 +169,6 @@ def test_interrupt_down():
     raise ToDoError
 
 
-@with_setup(connect_server, disconnect_server)
 def test_interrupt_up():
     """
     Kills the connection on a upload, Checks that it is handled gracefully.
