@@ -2,7 +2,6 @@ This is where the Server Prototypes can go. Create a directory for the technolog
 
 
 ##### server_conf.sh
-* This is not quite ready for use... it will make it so you can start the server, but not much else. I will work on that next
 * creates a testing server for ftplib
 * needs root access
 * create server: **sudo bash server_conf.sh make**
@@ -10,6 +9,11 @@ This is where the Server Prototypes can go. Create a directory for the technolog
 * files will be created two directories back:
   * ../../tesing_server (folder)
     * server.py (file)
+    * server_map.txt (file)
+    * User.db (file)
+    * sql (folder)
+      * _ _ init _ _.py (file)
+      * sql_manager.py (file)
     * user2 (folder)
       * shared_folder (folder) 
         * shared_file.txt (file)
@@ -22,6 +26,4 @@ This is where the Server Prototypes can go. Create a directory for the technolog
         * NOTE: the file in this folder was not created, it was mounted into this folder
         * shared_file.txt (file) 
 * Any changes in shared_folder will happen in both places, not just one
-* Run sever with: 
-  * Ubuntu: $ **sudo python server.py**
-  * Arch: $ **sudo python2.7 server.py**
+* Run sever with: **sudo bash start_server.sh**
