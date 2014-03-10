@@ -1,5 +1,3 @@
-This is still early in development, and a lot more is to come.  
-
 ##### Requirements:
 * pyftpdlib
 * Right now sever is only setup for port 21
@@ -17,19 +15,17 @@ This is still early in development, and a lot more is to come.
         * Log into machine type ifconfig to get ip addy
     * Launch the server with sudo 
     * Client can be run as normal user
- * Use server_conf.sh to setup sever, navigate to testing folder and lanch server.py as root
-
-##### Other Notes:
-* I have been doing a lot of restructuring, the files right now are more templates then actually functional
-* I will have working code up again soon
-* The server should still work, just the cleint is not configured to talk to it anymore
-
-
-I have now tested it on: (before restructuring)
+ * Use server_conf.sh to setup sever
+ * Navigate to testing folder and lanch start_server.sh as root
+ 
+#####Other Notes:
+* Fairly stable. Noticed inactivity causes some issues.  Not hard to handle though. 
+* This is only a client server! We still need something that can handle admin commands! 
+* I still need to do an ubuntu to ubuntu test. 
 
 | Server                        | Client                         |
 | :---------------------------: | :----------------------------: |
-| Arch Linux                    | Arch Linux                     |
-| Ubuntu Sever LTS 12.04  (vm)  | Ubuntu Desktop LTS 12.04 (vm)  |
+| Ubuntu Server LTS 12.04  (vm)  | Arch Linux                     |
+
 
 

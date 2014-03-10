@@ -27,6 +27,7 @@ then
         
         # Copy sever into root folder
         `cp sql/sql_manager.py $MYPATH/sql/.`
+        `cp start_server.sh $MYPATH/.`
         `sed 's/Server.sql.sql_manager/sql.sql_manager/g' ftplib/ftplibserver.py > $MYPATH/server.py`
         `touch $MYPATH/sql/__init__.py`
 
@@ -60,7 +61,7 @@ then
         `mv server_map.txt $MYPATH/.`        
    
         # Read Write permission because this was created as root, dont really need it but... it's nice
-        `chmod -R $MYPATH a+rw`
+        `chmod -R a+rw $MYPATH`
       
         echo "Server ready. Navigate to $MYPATH and run python server.py to start using it."
     
