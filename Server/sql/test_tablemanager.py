@@ -281,3 +281,22 @@ def test_pull_where():
     n_eq(expected, actual)
 
 
+def test_pull_where_string():
+    """
+    This one test should cover all operators
+    @precondition: test_tm_quick_push passed
+    @precondition: test_tm_with_enter passed
+    @precondition: test_tm_with_exit passed
+    @precondition: test_tm_with_exit_error passed
+    """
+    with TableManager(db_name, table_name) as t:
+        t.clear_table()
+        for i in range(9):
+            text = 'one_%d' % i
+            t.quick_push([text, i])
+        expected = ('one_5', 5)
+        value = column_map[0][0]
+        compare_to = 'one_5'
+        op = '='
+        actual = t.pull_where(value, compare_to, op)[0]
+    n_eq(expected, actual)
