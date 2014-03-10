@@ -17,14 +17,18 @@
 
 if [ `whoami` == "root" ]
 then 
+
     if [ "$1" == "make" ]
     then
         # Create a root folder
         `mkdir ../../testing_server`
         MYPATH=`readlink -f ../../testing_server`
-
+        `mkdir $MYPATH/sql`
+        
         # Copy sever into root folder
-        `cp ftplib/ftplibserver.py $MYPATH/server.py`
+        `cp sql/sql_manager.py $MYPATH/sql/.`
+        `sed 's/Server.sql.sql_manager/sql.sql_manager/g' ftplib/ftplibserver.py > $MYPATH/server.py`
+        `touch $MYPATH/sql/__init__.py`
 
         # Create a few directories
         `mkdir $MYPATH/user1`;
