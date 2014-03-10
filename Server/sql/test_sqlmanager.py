@@ -36,10 +36,10 @@ def setup_module():
     try:
         con = lite.connect(db_name)
         cur = con.cursor()
-        command = 'CREATE TABLE ' + table_name + ' (col_one text, col_two text, col_three text);'
+        command = 'CREATE TABLE %s (col_one text, col_two text, col_three text);' % table_name
         cur.execute(command)
         con.commit()
-        command = 'INSERT INTO ' + table_name + ' VALUES("one", "two", "three");'
+        command = 'INSERT INTO %s VALUES("one", "two", "three");' % table_name
         cur.execute(command)
         con.commit()
     except lite.DatabaseError, e:
@@ -101,7 +101,7 @@ def test_sm_fetch_command():
     """
     Checks that the db can run a fetch command
     """
-    command = 'SELECT * FROM ' + table_name + ';'
+    command = 'SELECT * FROM %s;' % table_name
     s = SqlManager(db_name)
     s.connect()
     data = s._fetch_command(command)[0]
@@ -116,15 +116,14 @@ def test_sm_no_fetch_command():
     Checks that the table can run a no fetch command
     """
     expected = ['a', 'b', 'c']
-    command = 'INSERT INTO ' + table_name + ' VALUES(' + str(expected)[1:-1] + ');'
-    print command
+    command = 'INSERT INTO %s VALUES(%s);' % (table_name, str(expected)[1:-1])
     s = SqlManager(db_name)
     s.connect()
     s._no_fetch_command(command)
     s.disconnect()
     con = lite.connect(db_name)
     cur = con.cursor()
-    command = 'SELECT * FROM ' + table_name + ';'
+    command = 'SELECT * FROM %s;' % table_name
     cur.execute(command)
     fetched = cur.fetchall()
     fetched = fetched[1]
