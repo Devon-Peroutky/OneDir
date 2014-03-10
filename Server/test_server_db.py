@@ -2,7 +2,7 @@ __author__ = 'Justin Jansen'
 __status__ = 'Development'
 __date__ = '03/07/14'
 
-from Server.sql.sql_manager import TableAdder, TableManager
+from sql.sql_manager import TableAdder, TableManager
 
 
 def main():
