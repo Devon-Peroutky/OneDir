@@ -5,7 +5,6 @@ __date__ = '03/07/14'
 import sqlite3 as lite
 
 """
-
 SqlManager(database_name)
     - The parent class to all other classes in sql_manager.py
 TableAdder(database_name, table_name)
@@ -16,9 +15,6 @@ TableManager(database_name, table_name)
     - Manages common database tasks such as adding and removing items from a table
     - Likely that other methods will be useful.
     - Will write them as needed
-
-These are still untested.
-
 """
 
 
@@ -27,6 +23,7 @@ class SqlManager(object):
     The parent manager, meant to be extended, not used unless the job
     is really unique and it is simpler to use this.
     """
+
     def __init__(self, database_name):
         self.name = database_name.split('.')[0]
         self.tables = self._pull_tables()
@@ -38,6 +35,7 @@ class SqlManager(object):
         @return: True if a successful connection is made
         """
         self.con = lite.connect(self.name + '.db')
+        self.con.text_factory = str
 
     def disconnect(self):
         """
@@ -80,6 +78,7 @@ class TableAdder(SqlManager):
     Adds a table to a database, the database does not need to
     exist before invoking this.
     """
+
     def __init__(self, database_name, table_name):
         super(TableAdder, self).__init__(database_name)
         if table_name in self.tables:
@@ -105,10 +104,11 @@ class TableAdder(SqlManager):
         the table to the database.
         """
         if not self.done:
-            command = 'CREATE TABLE ' + self.table_name + '('
+            values = []
             for value in self.table_columns:
-                command += value[0] + ' ' + value[1] + ', '
-            command = command[:-2] + ");"
+                values += value[0] + ' ' + value[1] + ', '
+            values = ''.join(values[:-2])
+            command = 'CREATE TABLE %s(%s)' % (self.table_name, values)
             self.connect()
             self._no_fetch_command(command)
             self.disconnect()
@@ -119,6 +119,7 @@ class TableRemover(SqlManager):
     """
     Deletes a table from the database
     """
+
     def __init__(self, database_name, table_name):
         """
         @raises NameError: table not found
@@ -129,7 +130,7 @@ class TableRemover(SqlManager):
         self._delete_table(table_name)
 
     def _delete_table(self, table_name):
-        command = 'DROP TABLE IF EXISTS ' + table_name + ';'
+        command = 'DROP TABLE IF EXISTS %s;' % table_name
         self.connect()
         self._no_fetch_command(command)
         self.disconnect()
@@ -140,6 +141,7 @@ class TableManager(SqlManager):
     Handles pulls and pushes from a table in the database.
     Can now handle 'with'
     """
+
     def __init__(self, database_name, table_name):
         """
         @raises NameError: The table is not in the database
@@ -171,13 +173,13 @@ class TableManager(SqlManager):
         @raises ValueError: If the list is the wrong length
         """
         if len(value_list) == len(self.table_col_names):
-            command = "INSERT INTO " + self.table_name + " VALUES"
-            command = command + '(' + str(value_list).strip('[').strip(']') + ');'
+            values = str(value_list).strip('[').strip(']')
+            command = 'INSERT INTO %s VALUES(%s)' % (self.table_name, values)
             self._no_fetch_command(command)
         else:
             raise ValueError('value_list does not match columns')
 
-    def push(self, tuple_list):  # TODO completely untested
+    def push(self, tuple_list):
         """
         A safer push that checks column names and converts the types before trying to push to the table.
         Columns can be inserted in any order.
@@ -200,43 +202,49 @@ class TableManager(SqlManager):
                 elif col_type == 'blob':
                     push_list += [buffer(to_add)]
             else:
-                push_list += [None]
+                raise ValueError('Undefined Column')
         self.quick_push(push_list)
 
     def clear_table(self):
         """
         Makes the table empty
         """
-        command = "DELETE FROM " + self.table_name + ';'
+        command = "DELETE FROM %s;" % self.table_name
         self._no_fetch_command(command)
         self._no_fetch_command("VACUUM;")
 
-    def pull(self, row_list=None): # TODO FIX THIS
+    def pull(self, col_list=[]):  # TODO FIX THIS
         """
         Get data from the database
-        @param row_list: The rows to get, if left as None it will return all rows
+        @param col_list: The rows to get, if left as None it will return all rows
         @return: The data from the table
         """
-        command = "SELECT "
-        if not row_list:
-            command += "* "
+        if len(col_list) == 0:
+            values = '*'
         else:
-            for x in row_list:
-                if x in self.table_col_names:
-                    command += x + ', '
-            command = command[:-2]
-        command += " FROM " + self.table_name + ';'
-        values = self._fetch_command(command)
-        for i, the_type in self.table_col_type:  # TODO Untested
-            if the_type == 'text':
-                values[i] = str(values[i])
-            elif the_type == 'integer':
-                values[i] = int(values[i])
-            elif the_type == 'real':
-                values[i] = float(values[i])
-            elif the_type == 'blob':
-                values[i] = buffer(values[i])
-        return values
+            values = ','.join(col_list)
+        command = 'SELECT %s FROM %s;' % (values, self.table_name)
+        return self._fetch_command(command)
+
+    def pull_where(self, value, compare_to, operator, col_list=[]):
+        """
+        Resembles: SELECT col_list FROM table_name WHERE value (operator) compare_to;
+        @param value: the column name of the value you want to compare with
+        @param compare_to: value to compare against
+        @param operator: '=', '!=', '<>', '>', '<', '>=', '<='
+        @param col_list: list of columns to return data from
+        @return: data from the table that match your query
+        """
+        operators = ['=', '!=', '<>', '>', '<', '>=', '<=']
+        if not operator in operators:
+            raise ValueError('Excepted operators: %s' % str(operators)[1:-1])
+        if len(col_list) == 0:
+            cols = '*'
+        else:
+            cols = ','.join(col_list)
+        comp = str(value) + str(operator) + str(compare_to)
+        command = 'SELECT %s FROM %s WHERE %s;' % (cols, self.table_name, comp)
+        return self._fetch_command(command)
 
     def __enter__(self):
         """
