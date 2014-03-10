@@ -58,7 +58,10 @@ then
         `find $MYPATH >> server_map.txt`
         `python2.7 map_fixer.py $MYPATH server_map.txt`
         `mv server_map.txt $MYPATH/.`        
-         
+   
+        # Read Write permission because this was created as root, dont really need it but... it's nice
+        `chmod -R $MYPATH a+rw`
+      
         echo "Server ready. Navigate to $MYPATH and run python server.py to start using it."
     
     elif [ "$1" == "delete" ]
