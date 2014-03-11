@@ -4,7 +4,7 @@
     "users":
     {
         "admin":["admin", "."],
-        "user1":["123", "/user1"],
-        "user2":["abc", "/user2"]
+        "user1":["123", "user1"],
+        "user2":["abc", "user2"]
     }
 }
