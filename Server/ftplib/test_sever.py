@@ -53,6 +53,9 @@ def setup_module():
     If file not found, or can not connect will throw error and no tests will be run.
     """
     if not os.path.isfile('server_config.txt'):
+        print 'need file, server_config.txt, file template:'
+        with open('conf_template.txt', 'r') as r:
+            print r.read()
         raise SetupError('Setup File not found: more info in std.out')
     with open('server_config.txt') as jd:
         global server_ip
