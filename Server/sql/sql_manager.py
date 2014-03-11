@@ -159,7 +159,7 @@ class TableManager(SqlManager):
         """
         Gets information that the program needs about the table
         """
-        command = 'pragma table_info("' + self.table_name + '");'
+        command = 'pragma table_info("%s");' % self.table_name
         raw_data = self._fetch_command(command)
         for column in raw_data:
             self.table_col_names += [str(column[1])]
@@ -213,7 +213,7 @@ class TableManager(SqlManager):
         self._no_fetch_command(command)
         self._no_fetch_command("VACUUM;")
 
-    def pull(self, col_list=[]):  # TODO FIX THIS
+    def pull(self, col_list=[]):
         """
         Get data from the database
         @param col_list: The rows to get, if left as None it will return all rows
