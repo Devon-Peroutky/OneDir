@@ -17,6 +17,13 @@ TableManager(database_name, table_name)
     - Will write them as needed
 """
 
+class ConnectionError(Exception):
+    """
+    Thrown when the connection a command is ran, that requires the a non open database to be connected
+    """
+    pass
+
+
 
 class SqlManager(object):
     """
@@ -60,6 +67,8 @@ class SqlManager(object):
         """
         Runs a sql command that returns something
         """
+        if not self.con:
+            raise ConnectionError('Connection not open')
         cur = self.con.cursor()
         cur.execute(command)
         return cur.fetchall()
@@ -68,6 +77,8 @@ class SqlManager(object):
         """
         Runs a sql command that does not return anything
         """
+        if not self.con:
+            raise ConnectionError('Connection not open')
         cur = self.con.cursor()
         cur.execute(command)
         self.con.commit()
@@ -149,7 +160,6 @@ class TableManager(SqlManager):
         super(TableManager, self).__init__(database_name)
         if not table_name in self.tables:
             raise NameError('Table not found in database')
-        self.connect()
         self.table_name = table_name
         self.table_col_names = []
         self.table_col_type = []
@@ -159,11 +169,17 @@ class TableManager(SqlManager):
         """
         Gets information that the program needs about the table
         """
+        is_open = True
+        if not self.con:
+           is_open = False
+           self.connect()
         command = 'pragma table_info("%s");' % self.table_name
         raw_data = self._fetch_command(command)
         for column in raw_data:
             self.table_col_names += [str(column[1])]
             self.table_col_type += [str(column[2])]
+        if not is_open:
+            self.disconnect()
 
     def quick_push(self, value_list):
         """
@@ -253,6 +269,7 @@ class TableManager(SqlManager):
         """
         For 'with'
         """
+        self.connect()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
