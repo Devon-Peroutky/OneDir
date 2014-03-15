@@ -1,31 +1,38 @@
 import hashlib
+
 # everything must have underscore right now
 
+
 def args_strip(args):
+    """
+    This command is not injected into the handler. 
+    It is used as a quick way to seperate the filepath from the argument
+    @return: The arguement without the file path
+    """
     return str(args).split('/')[-1]
 
+
 def get_path(args):
+    """
+    This command is not injected into the handler. 
+    It is also used to seperate the filepath from the argument.
+    @return: The path without the argument
+    """
     path = str(args).split('/')[:-1]
     return '/'.join(path)
 
+
 def void_need(user, cwd, database, table, args):
+    """
+    This is a demo of what is returned by the arguments. 
+    """
     a = args_strip(args)
     b = get_path(args) 
     return "%s %s %s %s %s %s %s" % (user, cwd, database, table, args, a, b)
 
-def void_abc(user):
-    return user
 
 def string_checksum(args):
     """
-    This is a hackish solution, but when the file was written to the server. A extra line was added to it.
+    This was fixed! Now it is only one line. 
     """
-    with open(args, 'rb') as r:
-        fn = r.read()
-    print fn
-    fn = fn.splitlines()
-    fn = '\n'.join(fn)
-    with open(args, 'w') as w:
-        w.write(fn)
     return hashlib.sha224(open(args, 'rb').read()).hexdigest() 
-

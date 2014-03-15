@@ -26,14 +26,14 @@
 #
 #   
 
-import sys
-import inspect
+import sys, inspect
 from pyftpdlib.handlers import _strerror, BufferedIteratorProducer
 
 
 __author__ = 'Justin Jansen'
 __status__ = 'Developement'
 __data__ = '03/13/14'
+
 
 void_template = "" \
 """
@@ -108,6 +108,7 @@ class NamingError(Exception):
     """
     pass
 
+
 class CommandCreator(object):
     """
     Translates methods into the format that they need to be in to run on the server.
@@ -145,7 +146,7 @@ class CommandCreator(object):
         else:
             method['has_arg'] = False
             method['inst']=  "Syntax %s" % method['cmd']
-        made = arg_maker(args)
+        made = self.arg_maker(args)
         method['need'] = made[0]
         method['arg'] = made[1]
         method['func'] = func.__name__
@@ -171,27 +172,26 @@ class CommandCreator(object):
             func_name = 'ftp_%s' % method['cmd']
             setattr(caller.__class__, eval(func_name).__name__, eval(func_name))
 
-def arg_maker(args):
-    user = '\n\tuser = self.username'
-    database = '\n\tdatabase = self.users_database[0]'
-    table = '\n\ttable = self.users_database[1]'
-    cwd = '\n\tcwd = self.fs.cwd' 
-    added_lines  = ''
-    arg_line = ''
-    for arg in args:
-        if arg == 'user':
-            added_lines += user
-            arg_line += ' user,'
-        if arg == 'cwd':
-            added_lines += cwd
-            arg_line += ' cwd,'
-        if arg == 'table':
-            added_lines += table
-            arg_line += ' table,'
-        if arg == 'database':
-            added_lines += database
-            arg_line += ' database,'
-        if arg == 'args':
-            arg_line += ' line,'
-    arg_line = arg_line[1:-1]
-    return (added_lines, arg_line)
+    def arg_maker(self, args):
+        """
+        Used to create and pass extra arguments
+        """
+        added_lines  = ''
+        arg_line = ''
+        for arg in args:
+            if arg == 'user':
+                added_lines += '\n\tuser = self.username'
+                arg_line += ' user,'
+            if arg == 'cwd':
+                added_lines += '\n\tcwd = self.fs.cwd' 
+                arg_line += ' cwd,'
+            if arg == 'table':
+                added_lines += '\n\ttable = self.users_database[1]'
+                arg_line += ' table,'
+            if arg == 'database':
+                added_lines += '\n\tdatabase = self.users_database[0]'
+                arg_line += ' database,'
+            if arg == 'args':
+                arg_line += ' line,'
+        arg_line = arg_line[1:-1]
+        return (added_lines, arg_line)
