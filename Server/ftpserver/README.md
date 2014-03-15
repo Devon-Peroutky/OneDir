@@ -1,49 +1,24 @@
+I had several servers in here, they have all been merged into the best one.
 
-There are two servers in this folder.  They are both built on pyftplib, but they demonstrate different things. 
+The server handles all the tpyicals things already, with a few extras for demos. 
 
-#### FTP Lib Server 
+I have modified the authenticator to read from a database instead loading every user into before the server starts. 
+There is a better option, but it seems like we will not be allowed to use it. 
 
-##### Files:
-* This Folder
- * ftpdlibserver.py
- * test_server.py
- * conf_template.py
-* In onedir/Server
- * map_fixer.py
- * server_conf.sh
- * start_server.sh
- * test_server_db.py 
+I made a command creator also for this server. All you have to do is create a function in either user_commands.py or admin_commands.py and the creator will automatically include it as a server command.  Harder then it sounds. For details read the top of command_creater.py.  More command types can be created as needed. 
 
-#####Other Notes:
-* Fairly stable. Noticed inactivity causes some issues.  Not hard to handle though. 
-* Use server_conf.sh to setup sever
-* Navigate to testing folder and lanch start_server.sh as root
- 
-#### Command Server 
+I also have figured out how to share folder mostly painlessly. But I have not got around to doing so.  
 
-#####Files:
-* command_server.py
-* demo_command_server.py
+There is still an issue with connections timing out after longer periods of inactivity. That will have to be handled on the client in. 
 
-#### Both 
+Big obstical with this still.  Is there server can not call the client the client can only call the server.  There seems to be a few lighter python classes that we can use to manage that though. The client will need a listener. 
 
-##### Requirements:
-* pyftpdlib
-* Right now severs is only setup for port 21
- 
-##### Setup:
-* Two computers running linux
-    * Launch the server with sudo 
-    * Client can be run as normal user
-* Two VM running linux  
-    * If using Virtualbox
-        * Go to settings
-        * Network
-        * Attach To: 
-        * Switch to Bridge Adapter
-        * Log into machine type ifconfig to get ip addy
-    * Launch the server with sudo 
-    * Client can be run as normal user
+The server can be sped up by:
+* use_sendfile:
+* when True uses sendfile() system call to send a file resulting in faster uploads (from server to client). Works on UNIX only and requires pysendfile module to be installed separately: http://code.google.com/p/pysendfile/ New in version 0.7.0
+* it is not slow at all though.  
+* i just keep forgetting to implement it. 
+
 
 I still need to do an ubuntu to ubuntu test. 
 
