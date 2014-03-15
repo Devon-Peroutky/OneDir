@@ -153,6 +153,8 @@ def test_user_add():
 def test_upload():
     """
     Attempts to upload a file
+    NOTE: This one has been edited in order to fix the extra line being appended to the end of the file.
+    NOTE: This works with any file type.
     """
     new_dir = 'upload_folder'
     f_name = 'uploaded.txt'
@@ -160,7 +162,7 @@ def test_upload():
     with open(f_name, 'w') as w:
         w.write('some text for the file')
     u1_ftp.cwd(new_dir)
-    u1_ftp.storlines('STOR %s' % f_name, open(f_name, 'rb'))
+    u1_ftp.storbinary('STOR %s' % f_name, open(f_name, 'rb'))
     actual = u1_ftp.lastresp
     expected = '226'
     if os.path.isfile(f_name):
@@ -296,11 +298,12 @@ def test_rename():
 def test_check_file():
     """
     Gets the checksum of a file
+    NOTE: This has been changed so that the file is not longer written with an extra line at the end
     """
     f_name = 'check_this.txt'
     with open(f_name, 'w') as w:
         w.write('some text for the file')
-    u1_ftp.storlines('STOR %s' % f_name, open(f_name, 'rb'))
+    u1_ftp.storbinary('STOR %s' % f_name, open(f_name, 'rb'))
     local = hashlib.sha224(open(f_name, 'rb').read()).hexdigest()
     if os.path.isfile(f_name):
         os.remove(f_name)
