@@ -36,8 +36,9 @@ def setup_users():
 def main():
     set_command_creator(user_commands, admin_commands)
     auth = OneDirAuthorizer(db_name, table_name)
-    auth.add_user('admin', 'admin', '.', perm='elradfmwM')
     handler = OneDirHandler
+    handler.user_sendfile = True
+    handler.timeout = None
     handler.authorizer = auth
     handler.banner = "Just testing right now"
     address = ('', 21)
