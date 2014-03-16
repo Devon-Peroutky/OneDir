@@ -2,10 +2,21 @@ from binascii import hexlify, unhexlify
 from simplecrypt import encrypt, decrypt, DecryptionException
 
 
+#
+# Installing on Ubuntu LTS:
+#
+# update/upgrade as needed
+# sudo apt-get install python-crypto
+# sudo pip install simple-crypt
+# cd /usr/lib/python2.7/dist-packages/Crypto/Protocol
+# IF KDF.PY is not in the folder! 
+# sudo wget https://raw.github.com/dlitz/pycrypto/master/lib/Crypto/Protocol/KDF.py
+#
+
+
 def can_you_crack_it():
-    pw = '736300016c85cbf950ae8a1795a3f10a1bb675e64fa6645d6e4756e9048f1409e9c267b6a5d87c2627f30715' \
-         'cb1e18f7246377ce0dc63160053c0209cde896d0ff74eb199464aaf3b6a33458b3c75b92afe82bb951976aeb' \
-         '331fd76295ab1a60075f7a3793db6d41e3703c081567a783ed323f8c'
+    pw = '73630001570f1a310cb6889dc26de098389b942b2efd2b8bb4a5b2991fdc8fa7fb406de51e6de2b1e2b4ec67' \
+         '01c13dff2bad025fbe3d3a1d5db2b4bd763efafe150ca7808f313dfc8332bccef9edaff76e13e418'
     pw = unhexlify(pw)
     print '\nJust for fun'
     print 'Here is a random encrypted value'
