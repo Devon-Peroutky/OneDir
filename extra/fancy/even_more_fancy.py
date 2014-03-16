@@ -16,11 +16,11 @@ def quit(widget):
 
 def main():
     ind = appi.Indicator("OneDIR", "Notify message", appi.CATEGORY_APPLICATION_STATUS)
-    ind.set_status (appi.STATUS_ACTIVE)
+    ind.set_status(appi.STATUS_ACTIVE)
     ind.set_icon("/home/justin/tiny_strip.png")
-    ind.set_attention_icon ("indicator-messages-new")
+    ind.set_attention_icon("indicator-messages-new")
     menu = gtk.Menu()
-    title = gtk.MenuItem("OneDir Notification: (click bellow)")
+    title = gtk.MenuItem("OneDir Notification: (click below)")
     notif = gtk.MenuItem("A friend invited you to share a folder")
     q = gtk.MenuItem("quit")
     notif.connect("activate", wp_launcher)
@@ -35,7 +35,6 @@ def main():
     gtk.main()
 
 if __name__ == '__main__':
-    command = 'notify-send "This is not what I wanted you to notice" "Look up and slightly to the left, for the thunderbird icon. \n I am using that icon as a placeholder for now" -t 5000'
+    command = 'notify-send "This is not what I wanted you to notice" "Look up and slightly to the left for the Thunderbird icon. \n I am using that icon as a placeholder for now" -t 5000'
     subprocess.Popen(command, shell=True)
     main()
-
