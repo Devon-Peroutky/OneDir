@@ -14,7 +14,7 @@ This might not even be needed but, it could be used in the even that a client an
 
 files = ['a.txt', 'b.txt', 'c.txt']
 same = 'a.txt and b.txt are the same'
-dif =  'c.txt is different'
+dif = 'c.txt is different'
 
 
 def setup_module():

@@ -6,13 +6,16 @@ import webbrowser
 import sys
 import os
 
+
 def wp_launcher(widget):
     cwd = os.getcwd()
     url = 'file://' + cwd + '/index.html'
     webbrowser.open_new(url)
 
+
 def quit(widget):
     sys.exit(0)
+
 
 def main():
     ind = appi.Indicator("OneDIR", "Notify message", appi.CATEGORY_APPLICATION_STATUS)
@@ -33,6 +36,7 @@ def main():
     q.show()
     ind.set_menu(menu)
     gtk.main()
+
 
 if __name__ == '__main__':
     command = 'notify-send "This is not what I wanted you to notice" "Look up and slightly to the left for the Thunderbird icon. \n I am using that icon as a placeholder for now" -t 5000'

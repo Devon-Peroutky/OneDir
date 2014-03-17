@@ -7,8 +7,8 @@ from sql_manager import TableManager
 def args_strip(args):
     """
     This command is not injected into the handler. 
-    It is used as a quick way to seperate the filepath from the argument
-    @return: The arguement without the file path
+    It is used as a quick way to separate the file path from the argument
+    @return: The argument without the file path
     """
     return str(args).split('/')[-1]
 
@@ -17,7 +17,7 @@ def args_strip(args):
 def get_path(args):
     """
     This command is not injected into the handler. 
-    It is also used to seperate the filepath from the argument.
+    It is also used to separate the file path from the argument.
     @return: The path without the argument
     """
     path = str(args).split('/')[:-1]
@@ -26,8 +26,8 @@ def get_path(args):
 
 def record_data(user=None, cwd=None, database=None, table=None, args=None):
     """
-    This is another method to help you diagnose the kind of arguments you are recieving.
-    From experiance, it is likely that the problem is something is unicode when you are 
+    This is another method to help you diagnose the kind of arguments you are receiving.
+    From experience, it is likely that the problem is something is unicode when you are
     expecting it to be a ascii string. 
     """
     with open('info.txt', 'a') as w:
@@ -54,16 +54,15 @@ def begin_shutdown():
 def list_tusers():
     """
     This was writen as a test for a the list command, 
-    but I decided to leave it incase it had use later. 
+    but I decided to leave it in case it had use later.
     """
     with TableManager('Users.db', 'users') as t:
         return [str(x) for x in t.pull()]
-    return ['0']
 
 
 def void_useradd(database, table, cwd, args):
     """
-    This creates new users.  It should be altred to check for a username ahead of time,
+    This creates new users.  It should be altered to check for a username ahead of time,
     so that it does not duplicate users. Which could cause issues.  
     This also stores the password as given. Which I believe is bad practice. 
     """
@@ -72,7 +71,7 @@ def void_useradd(database, table, cwd, args):
     cwd = str(cwd)
     un = args[0]
     pw = args[1]
-    push = [un, pw,'%s/%s' % (cwd[1:], un), 'elradfmw', 'Wecome %s' % un, 'Bye %s' % un]
+    push = [un, pw,'%s/%s' % (cwd[1:], un), 'elradfmw', 'Welcome %s' % un, 'Bye %s' % un]
     with TableManager(database, table) as t:
         t.quick_push(push)
     return '%s added to database' % un

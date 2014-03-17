@@ -1,6 +1,6 @@
 I had several servers in here, they have all been merged into the best one.
 
-The server handles all the tpyicals things already, with a few extras for demos. 
+The server handles all the topical things already, with a few extras for demos.
 
 I have modified the authenticator to read from a database instead loading every user into before the server starts. 
 There is a better option, but it seems like we will not be allowed to use it. 
@@ -11,7 +11,7 @@ I also have figured out how to share folder mostly painlessly. But I have not go
 
 There is still an issue with connections timing out after longer periods of inactivity. That will have to be handled on the client in. 
 
-Big obstical with this still.  Is there server can not call the client the client can only call the server.  There seems to be a few lighter python classes that we can use to manage that though. The client will need a listener. 
+Big obstacle with this still.  Is there server can not call the client the client can only call the server.  There seems to be a few lighter python classes that we can use to manage that though. The client will need a listener.
 
 The server can be sped up by:
 * use_sendfile:

@@ -5,9 +5,9 @@ import socket, sys
 # Will need to be more then this, but still should be fairly small
 
 
-def main(HOST='', PORT=50007):
+def main(host='', port=50007):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.bind((HOST, PORT))
+    s.bind((host, port))
     s.listen(1)
     while True:
         conn, addr = s.accept()
