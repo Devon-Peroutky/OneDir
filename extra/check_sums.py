@@ -14,7 +14,7 @@ This might not even be needed but, it could be used in the even that a client an
 
 files = ['a.txt', 'b.txt', 'c.txt']
 same = 'a.txt and b.txt are the same'
-dif =  'c.txt is different'
+dif = 'c.txt is different'
 
 
 def setup_module():
@@ -99,13 +99,13 @@ if __name__ == '__main__':
     """
     setup_module()
     print same, dif
-    print 'md5 checksums:'
+    print 'md5 check sums:'
     for f in files:
         print '\t%s:' % f, [hashlib.md5(open(f, 'rb').read()).digest()]
-    print 'sha225 checksums:'
+    print 'sha225 check sums:'
     for f in files:
         print '\t%s:' % f, [hashlib.sha224(open(f,'rb').read()).digest()]
-    print 'sha512 checksums'
+    print 'sha512 check sums'
     for f in files:
         print '\t%s:' % f, [hashlib.sha512(open(f,'rb').read()).digest()]
     teardown_module()

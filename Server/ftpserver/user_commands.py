@@ -6,8 +6,8 @@ import hashlib
 def args_strip(args):
     """
     This command is not injected into the handler. 
-    It is used as a quick way to seperate the filepath from the argument
-    @return: The arguement without the file path
+    It is used as a quick way to separate the file path from the argument
+    @return: The argument without the file path
     """
     return str(args).split('/')[-1]
 
@@ -15,7 +15,7 @@ def args_strip(args):
 def get_path(args):
     """
     This command is not injected into the handler. 
-    It is also used to seperate the filepath from the argument.
+    It is also used to separate the file path from the argument.
     @return: The path without the argument
     """
     path = str(args).split('/')[:-1]
@@ -27,7 +27,7 @@ def void_need(user, cwd, database, table, args):
     This is a demo of what is returned by the arguments. 
     """
     a = args_strip(args)
-    b = get_path(args) 
+    b = get_path(args)
     return "%s %s %s %s %s %s %s" % (user, cwd, database, table, args, a, b)
 
 

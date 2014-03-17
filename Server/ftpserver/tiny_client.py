@@ -2,8 +2,8 @@ import sys, socket
 
 # see tiny_server.py comments. 
 
-# exit: quit's client
-# shutdown: quit's client and server
+# exit: quits client
+# shutdown: quits client and server
 
 def main(host, port=50007):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -12,7 +12,7 @@ def main(host, port=50007):
         mes = raw_input('Say Something: ')
         s.sendall(mes)
         data = s.recv(1024)
-        print 'recieved', repr(data)
+        print 'received', repr(data)
         if mes == 'exit' or mes == 'shutdown':
             break 
 
