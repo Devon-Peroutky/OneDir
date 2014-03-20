@@ -17,12 +17,12 @@ TableManager(database_name, table_name)
     - Will write them as needed
 """
 
+
 class ConnectionError(Exception):
     """
     Thrown when the connection a command is ran, that requires the a non open database to be connected
     """
     pass
-
 
 
 class SqlManager(object):
@@ -171,8 +171,8 @@ class TableManager(SqlManager):
         """
         is_open = True
         if not self.con:
-           is_open = False
-           self.connect()
+            is_open = False
+            self.connect()
         command = 'pragma table_info("%s");' % self.table_name
         raw_data = self._fetch_command(command)
         for column in raw_data:
