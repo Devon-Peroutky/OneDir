@@ -1,16 +1,13 @@
 import os
 from shutil import copyfile, rmtree
 from ftplib import FTP
-from client import OneDirFptClient
 from extra.testhelper.helpers import n_eq, n_ok
 from nose.tools import timed
+from client import OneDirFtpClient
 
 __author__ = 'Justin Jansen'
 __status__ = 'Testing'
-__date__ = '03/18/14'
-
-# lol, this was a way bigger pain then i thought it would be to test.
-# This has to manually ensure that the local filesystem matches the filesystem on the server
+__date__ = '03/29/14'
 
 
 class SetupError(Exception):
@@ -66,7 +63,7 @@ def teardown_module():
     Removes testing folder. After running this tests a few times
     I figured out the folders and files it is leaving on the server.
     """
-    f = OneDirFptClient(ip, user, pw, test_dir)
+    f = OneDirFtpClient(ip, user, pw, test_dir)
     f.delete_file('test_img.png')
     f.quit()
     f.close()
@@ -80,7 +77,7 @@ def test_connect():
     Checks for response code : 230
     """
     expected = '230'
-    f = OneDirFptClient(ip, user, pw, test_dir)
+    f = OneDirFtpClient(ip, user, pw, test_dir)
     actual = f.lastresp
     f.quit()
     f.close()
@@ -96,7 +93,7 @@ def test_upload_file():
     expected = '226'
     with open(uploaded_file, 'w') as w:
         w.write('some text for the file')
-    f = OneDirFptClient(ip, user, pw, test_dir)
+    f = OneDirFtpClient(ip, user, pw, test_dir)
     f.upload(uploaded_file)
     actual = f.lastresp
     nlst = f.nlst()
@@ -117,7 +114,7 @@ def test_upload_image():
     @requires: ../../extra/fancy/small_strip.png to exist
     """
     expected = '226'
-    f = OneDirFptClient(ip, user, pw, test_dir)
+    f = OneDirFtpClient(ip, user, pw, test_dir)
     f.upload(test_image)
     actual = f.lastresp
     nlst = f.nlst()
@@ -141,7 +138,7 @@ def test_download_file():
     expected = '226'
     if os.path.isfile(uploaded_file):
         os.remove(uploaded_file)
-    f = OneDirFptClient(ip, user, pw, test_dir)
+    f = OneDirFtpClient(ip, user, pw, test_dir)
     f.download(uploaded_file)
     actual = f.lastresp
     f.quit()
@@ -162,7 +159,7 @@ def test_download_image():
     expected = '226'
     if os.path.isfile(test_image):
         os.remove(test_image)
-    f = OneDirFptClient(ip, user, pw, test_dir)
+    f = OneDirFtpClient(ip, user, pw, test_dir)
     f.download(test_image)
     actual = f.lastresp
     f.quit()
@@ -184,7 +181,7 @@ def test_move_as_move_file():
     expected = '250'
     if not os.path.exists(server_folder):
         os.mkdir(server_folder)
-    f = OneDirFptClient(ip, user, pw, test_dir)
+    f = OneDirFtpClient(ip, user, pw, test_dir)
     f.mkd('first_transfer')
     to_file = os.path.join(server_folder, os.path.split(uploaded_file)[1])
     f.move(uploaded_file, to_file)
@@ -211,7 +208,7 @@ def test_move_as_move_folder():
     folder = os.path.join(test_dir, 'second_transfer')
     if not os.path.exists(folder):
         os.mkdir(folder)
-    f = OneDirFptClient(ip, user, pw, test_dir)
+    f = OneDirFtpClient(ip, user, pw, test_dir)
     f.mkd('second_transfer')
     to_folder = os.path.abspath(folder)
     f.move('first_transfer', to_folder)
@@ -237,7 +234,7 @@ def test_move_as_rename():
     before_name = os.path.join(test_dir, 'before_name.txt')
     with open(before_name, 'wb') as w:
         w.write('some text')
-    f = OneDirFptClient(ip, user, pw, test_dir)
+    f = OneDirFtpClient(ip, user, pw, test_dir)
     f.upload(before_name)
     after_name = os.path.join(test_dir, 'after_name.txt')
     f.move(before_name, after_name)
@@ -260,7 +257,7 @@ def test_delete_file():
     @requires: test_move_as_rename to pass
     """
     expected = '250'
-    f = OneDirFptClient(ip, user, pw, test_dir)
+    f = OneDirFtpClient(ip, user, pw, test_dir)
     after_name = os.path.join(test_dir, 'after_name.txt')
     f.delete_file(after_name)
     actual = f.lastresp
@@ -273,7 +270,7 @@ def test_delete_file():
         print 'nlst:', nlst
         n_ok(False, f, 'delete_file', message='File still in nlst')
 
-@timed(5)
+
 def test_delete_empty_folder():
     """
     Tries to delete an empty folder
@@ -284,7 +281,7 @@ def test_delete_empty_folder():
     folder = os.path.join(test_dir, 'delete_this')
     if not os.path.exists(folder):
         os.mkdir(folder)
-    f = OneDirFptClient(ip, user, pw, test_dir)
+    f = OneDirFtpClient(ip, user, pw, test_dir)
     f.mkd('delete_this')
     f.delete_folder(folder)
     actual = f.lastresp
@@ -306,7 +303,7 @@ def test_delete_full_folder():
     Check for folder in dir
     """
     expected = '250'
-    f = OneDirFptClient(ip, user, pw, test_dir)
+    f = OneDirFtpClient(ip, user, pw, test_dir)
     folder = os.path.join(test_dir, 'second_transfer')
     f.delete_folder(folder)
     actual = f.lastresp
@@ -318,3 +315,109 @@ def test_delete_full_folder():
     else:
         print 'nlst:', nlst
         n_ok(False, f, 'delete_folder', message='Folder in nlst')
+
+
+def test_cd():
+    """
+    Tests the cd command
+    Checks for response code: 250
+    Checks the directory name:
+    @required: delete_folder to pass
+    """
+    expected= '250'
+    dir_name = 'TestCd'
+    the_dir = os.path.join(test_dir, dir_name)
+    os.mkdir(the_dir)
+    f = OneDirFtpClient(ip, user, pw, test_dir)
+    f.mkd(dir_name)
+    f.cd(the_dir)
+    actual = f.lastresp
+    in_dir = f.pwd()
+    f.cwd('..')
+    f.delete_folder(the_dir)
+    f.quit()
+    f.close()
+    if os.path.exists(the_dir):
+        rmtree(the_dir)
+    if in_dir.strip('/') == dir_name:
+        n_eq(expected, actual, f, 'cd')
+    else:
+        print 'Expected:', dir_name, 'Actual:', in_dir
+        n_ok(False, f, 'cd', message="Dir names don't match")
+
+
+def test_list_dir_current():  # NOTE: I am thinking of killing this so it is not allowed, thoughts?
+    """
+    Lists the files in the folder,
+    Since the testing server runs on 'testing_server.py' it will check for that
+    Checks for response code: 226
+    """
+    expected = '226'
+    f = OneDirFtpClient(ip, user, pw, test_dir)
+    files = f.list_dir()
+    actual = f.lastresp
+    f.quit()
+    f.close()
+    if 'testing_server.py' in files:
+        n_eq(expected, actual, f, 'list_dir')
+    else:
+        n_ok(False, f, 'list_dir', message='404')
+
+
+def test_list_dir_path():
+    """
+    Creates a folder and puts a file in it.
+    Checks for file.
+    Checks for response code: 226
+    @requires: delete_folder to pass
+    @requires: upload to pass
+    """
+    expected = '226'
+    dir_name = 'ListTest'
+    file_name = 'temp.txt'
+    the_dir = os.path.join(test_dir, dir_name)
+    os.mkdir(the_dir)
+    the_file = os.path.join(the_dir, file_name)
+    with open(the_file, 'w') as w:
+        w.write('words')
+    f = OneDirFtpClient(ip, user, pw, test_dir)
+    f.mkd(dir_name)
+    f.upload(the_file)
+    the_list = f.list_dir(the_dir)
+    actual = f.lastresp
+    f.delete_folder(the_dir)
+    f.quit()
+    f.close()
+    if os.path.exists(the_dir):
+        rmtree(the_dir)
+    if file_name in the_list:
+        n_eq(expected, actual, f, 'list_dir')
+    else:
+        n_ok(False, f, 'list_dir', message='404')
+
+
+def test_mkdir():
+    """
+    Test making a new directory based on local directory.
+    Checks for response code: 257
+    Checks for folder on server.
+    @requires: list_dir to pass
+    @requires: delete_folder to pass
+    """
+    expected = '257'
+    dir_name = 'TestMkDir'
+    the_dir = os.path.join(test_dir, dir_name)
+    os.mkdir(the_dir)
+    f = OneDirFtpClient(ip, user, pw, test_dir)
+    f.mkdir(the_dir)
+    actual = f.lastresp
+    the_list = f.list_dir()
+    f.delete_folder(the_dir)
+    f.quit()
+    f.close()
+    if os.path.exists(the_dir):
+        rmtree(the_dir)
+    if dir_name in the_list:
+        n_eq(expected, actual, f, 'mkdir')
+    else:
+        n_ok(False, f, 'mkdir', message='folder not found')

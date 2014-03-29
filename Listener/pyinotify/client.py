@@ -2,18 +2,13 @@ import os
 from ftplib import *
 from copy import deepcopy
 
-# TODO, I would like to add rsync to server/client
-# TODO, Document the response codes for each method
 
 __author__ = 'Justin Jansen'
 __status__ = 'Testing'
-__date__ = '03/18/14'
+__date__ = '03/29/14'
 
 
-# TODO wrappers for cwd, nlst, mkd
-
-
-class OneDirFptClient(FTP):
+class OneDirFtpClient(FTP):
     """
     Adds commands, to FTP, and modifies them so that file/folder names/paths are in
     the form that they exist on the server.
@@ -22,11 +17,50 @@ class OneDirFptClient(FTP):
     def __init__(self, host, user, password, root_dir, timeout=None):
         """
         Right now, I do not know if the the listener splits the path from the file
+        @param host: The host ip address
+        @param user: The username
+        @param password:  The user's password
+        @param root_dir: The local directory of the OneDir files
+        @param timeout:  The amount of time till the connection cuts itself off. Default=None
         """
         FTP.__init__(self, host, user, password, '', timeout)
         self.root_dir = root_dir
         self.__file_names = []
         self.__folder_names = []
+
+    def cd(self, dir_name):
+        """
+        Changes the directory.
+        @param dir_name: The directory to change into
+        """
+        server_dir = os.path.relpath(dir_name, self.root_dir)
+        return self.cwd(server_dir)
+
+    def list_dir(self, dir_name=None):
+        """
+        Creates a list of files and folder contained in a directory
+        @param dir_name:
+            The name of the directory to create list from,
+            Default=None,
+            None will print the current directory
+        """
+        if not dir_name:
+            return self.nlst()
+        else:
+            server_dir = os.path.relpath(dir_name, self.root_dir)
+            return self.nlst(server_dir)
+
+    def mkdir(self, dir_name):
+        """
+        Creates a folder on the server.
+        @param dir_name:
+            This may include a path.
+            The name of the directory to create
+            WARNING: Without a path, this assumes it is already in the correct directory.
+        """
+        if not len(dir_name.split('/')) == 1:
+            dir_name = os.path.relpath(dir_name, self.root_dir)
+        return self.mkd(dir_name)
 
     def upload(self, filename):
         """
@@ -36,19 +70,22 @@ class OneDirFptClient(FTP):
         tmp = os.path.split(filename)
         server_path = os.path.relpath(tmp[0], self.root_dir)
         server_file = tmp[1]
+        cwd = self.pwd()
         self.cwd(server_path)
-        self.storbinary('STOR %s' % server_file, open(filename, 'rb'))
-        # return self.voidresp()
+        to_return = self.storbinary('STOR %s' % server_file, open(filename, 'rb'))
+        lr = self.lastresp
+        self.cwd(cwd)
+        self.lastresp = lr
+        return to_return
 
     def download(self, filename):
         """
         Downloads the file into this directory
-        @param:
+        @param filename: The full path to the file that needs to be changed.
         """
         server_file = os.path.relpath(filename, self.root_dir)
         with open(filename, 'wb') as w:
-            self.retrbinary('retr %s' % server_file, lambda x: w.write(x))
-        # return self.voidresp()
+            return self.retrbinary('retr %s' % server_file, lambda x: w.write(x))
 
     def move(self, from_move, to_move):
         """
@@ -74,8 +111,7 @@ class OneDirFptClient(FTP):
         @param folder_name: The path and folder name to delete
         """
         on_server = os.path.relpath(folder_name, self.root_dir)
-        self.__delete_folder(on_server)
-        # return self.getresp()
+        return self.__delete_folder(on_server)
 
     def __delete_folder(self, server_path):
         """ 
@@ -90,7 +126,7 @@ class OneDirFptClient(FTP):
         for f in files:
             self.delete(f)
         self.cwd('..')
-        self.rmd(server_path)
+        return self.rmd(server_path)
 
     def __file_folder_callback(self, line):
         """
