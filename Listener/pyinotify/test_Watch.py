@@ -1,9 +1,11 @@
 __author__ = 'Devon'
 import os
 import pyinotify
+import client.py
+
 
 class ModHandler(pyinotify.ProcessEvent):
-    '''
+    """
         Create -> Move_From -> Move_To
         Delete: Move_From
         Rename: Move_From, Move_To
@@ -11,93 +13,97 @@ class ModHandler(pyinotify.ProcessEvent):
         Copied In: Create
         Modified: Create, Move_From, Move_To
         Just Getting a Move_To means we either had a MODIFICATION or a RENAMING
-    '''
+    """
     print "IN HERE"
+    client = client.OneDirFtpClient(1.0, "admin", "admin", "/home/student/OneDir")
 
     def __init__(self):
         print "SUP"
-        self.directory=False
-        self.movedTo=False
-        self.movedFrom=False
-        self.create=False
+        self.directory = False
+        self.movedTo = False
+        self.movedFrom = False
+        self.create = False
 
     # --- If a file or directory is CREATED or MODIFIED---
     def process_IN_CREATE(self, event):
         print 'Created: '
         self.directory = event.dir
-        self.create=True
-        self.post_processing()
+        self.create = True
+        self.post_processing(event)
 
     # --- If a file or directory is DELETED or RENAMED or MODIFIED---
     def process_IN_MOVED_FROM(self, event):
         print 'Moved From'
         self.directory = event.dir
-        self.movedFrom=True
-        self.post_processing()
+        self.movedFrom = True
+        self.post_processing(event)
 
     def process_IN_DELETE(self, event):
         print 'Deleted'
         self.directory = event.dir
-        self.movedFrom=True
-        self.post_processing()
+        self.movedFrom = True
+        self.post_processing(event)
 
     def process_IN_MOVED_TO(self, event):
         print 'Move To'
         self.directory = event.dir
-        self.movedTo=True
-        self.post_processing()
+        self.movedTo = True
+        self.post_processing(event)
 
-    def post_processing(self):
-        movedFrom=self.movedFrom
-        movedTo=self.movedTo
-        create=self.create
-        directory=self.directory
+    def post_processing(self, event):
+        movedFrom = self.movedFrom
+        movedTo = self.movedTo
+        create = self.create
+        directory = self.directory
         print "Moved From: " + str(movedFrom)
         print "Moved To: " + str(movedTo)
         print "Create: " + str(create)
 
-
         # Delete
-        if (movedFrom and not movedTo and not create):
+        if movedFrom and not movedTo and not create:
             if directory:
-                print "Directory Deleted!"
+                client.delete_folder(event.name)
+                print event.name, " in ", event.path, " Deleted!"
             else:
-                print "File Deleted!"
+                client.delete_file(event.name)
+                print event.name, " in ", event.path, " Deleted!"
 
         # Rename
-        elif (movedTo and movedFrom and not create):
+        elif movedTo and movedFrom and not create:
             if directory:
-                print "Directory Renamed!"
+                print event.name, " Renamed!"
             else:
-                print "File Renamed!"
+                print event.name, " Renamed!"
 
         # Modified
-        elif (create and movedTo and movedFrom):
+        elif create and movedTo and movedFrom:
             if directory:
-                print "Directory Modified!"
+                print event.name, " Modified!"
             else:
-                print "File Modified!"
+                print event.name, " Modified!"
 
         # New File
-        elif (create and not movedTo and not movedFrom):
+        elif create and not movedTo and not movedFrom:
             if directory:
-                print "Directory Create!"
+                print event.name, " Create!"
             else:
-                print "File Created!"
+                print event.name, " Created!"
         else:
-            print "Rename or Modification!"
+            print event.name, " Rename or Modification!"
         print "-------------------------------"
 
         # ----- Reset -----
-        self.directory=False
-        self.movedTo=False
-        self.movedFrom=False
-        self.create=False
+        self.directory = False
+        self.movedTo = False
+        self.movedFrom = False
+        self.create = False
+
 
 def main():
     # --- Values ---
-    directory="/home/ubuntu/Documents/School/Spring_2014/Software_Development/THE_PROJECT"
+    directory = "/home/student/OneDir"
     mask = pyinotify.ALL_EVENTS | pyinotify.IN_DELETE
+
 
     # --- Initialization ---
     wm = pyinotify.WatchManager()
