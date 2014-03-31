@@ -26,6 +26,9 @@
 #
 #   
 
+# Just an extra word of warning... i ran Pycharm auto formatter in here and broke a few things. So, you have to
+# manually format this class
+
 import sys, inspect
 from pyftpdlib.handlers import _strerror, BufferedIteratorProducer
 
@@ -35,67 +38,67 @@ __status__ = 'Development'
 __data__ = '03/13/14'
 
 void_template = "" \
-                """
-                def ftp_%(cmd)s(self, line):
-                    try:%(need)s
-                        my_func = __import__('%(mod)s')
-                        my_func = my_func.%(func)s(%(arg)s)
-                        my_func = str(my_func)
-                        self.respond('200 ' + my_func)
-                    except:
-                        err = sys.exc_info()[1]
-                        why = _strerror(err)
-                        self.respond('550 ' + why)
-                """
+"""
+def ftp_%(cmd)s(self, line):
+    try:%(need)s
+        my_func = __import__('%(mod)s')
+        my_func = my_func.%(func)s(%(arg)s)
+        my_func = str(my_func)
+        self.respond('200 ' + my_func)
+    except:
+        err = sys.exc_info()[1]
+        why = _strerror(err)
+        self.respond('550 ' + why)
+"""
 
 begin_template = "" \
-                 """
-                 def ftp_%(cmd)s(self, line):
-                     try:
-                         my_func = __import__('%(mod)s')
-                     except:
-                         err = sys.exc_info()[1]
-                         why= _strerror(err)
-                         self.respond('550' + why)
-                     else:
-                         self.respond('200 Beginning: %(cmd)s currently execution unchecked')
-                         %(need)s
-                         my_func.%(func)s(%(arg)s)
-                 """
+"""
+def ftp_%(cmd)s(self, line):
+    try:
+        my_func = __import__('%(mod)s')
+    except:
+        err = sys.exc_info()[1]
+        why= _strerror(err)
+        self.respond('550' + why)
+    else:
+        self.respond('200 Beginning: %(cmd)s currently execution unchecked')
+        %(need)s
+        my_func.%(func)s(%(arg)s)
+"""
 
 string_template = "" \
-                  """
-                  def ftp_%(cmd)s(self, line):
-                      try:%(need)s
-                          my_func = __import__('%(mod)s')
-                          my_func = my_func.%(func)s(%(arg)s)
-                          my_func = str(my_func)
-                      except:
-                          err = sys.exc_info()[1]
-                          why= _strerror(err)
-                          self.respond('550' + why)
-                      else:
-                          self.push_dtp_data(my_func, cmd='%(cmd)s')
-                          return line
-                  """
+"""
+def ftp_%(cmd)s(self, line):
+    try:%(need)s
+        my_func = __import__('%(mod)s')
+        my_func = my_func.%(func)s(%(arg)s)
+        my_func = str(my_func)
+    except:
+        err = sys.exc_info()[1]
+        why= _strerror(err)
+        self.respond('550' + why)
+    else:
+        self.push_dtp_data(my_func, cmd='%(cmd)s')
+        return line
+"""
 
 list_template = "" \
-                """
-                def ftp_%(cmd)s(self, line):
-                    try:%(need)s
-                        my_func = __import__('%(mod)s')
-                        my_func = my_func.%(func)s(%(arg)s)
-                        my_func = [str(x) + '\\n' for x in my_func]
-                        my_func = iter(my_func)
-                        producer = BufferedIteratorProducer(my_func)
-                    except:
-                        err = sys.exc_info()[1]
-                        why= _strerror(err)
-                        self.respond('550' + why)
-                    else:
-                        self.push_dtp_data(producer, isproducer=True, cmd='%(cmd)s')
-                        return line
-                """
+"""
+def ftp_%(cmd)s(self, line):
+    try:%(need)s
+        my_func = __import__('%(mod)s')
+        my_func = my_func.%(func)s(%(arg)s)
+        my_func = [str(x) + '\\n' for x in my_func]
+        my_func = iter(my_func)
+        producer = BufferedIteratorProducer(my_func)
+    except:
+        err = sys.exc_info()[1]
+        why= _strerror(err)
+        self.respond('550' + why)
+    else:
+        self.push_dtp_data(producer, isproducer=True, cmd='%(cmd)s')
+        return line
+"""
 
 
 class NamingError(Exception):
