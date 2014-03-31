@@ -30,7 +30,7 @@ def setup_users():
     ta.commit()
     del ta
     with TableManager(db_name, table_name) as tm:
-        tm.quick_push(['admin', 'admin', '.', 'elradfmwM', 'Welcome Admin', 'Bye Admin'])
+        tm.quick_push(['admin', 'admin', '../../../toMirror/', 'elradfmwM', 'Welcome Admin', 'Bye Admin'])
 
 
 def main():
