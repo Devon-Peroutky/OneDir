@@ -1,6 +1,6 @@
 __author__ = 'Devon'
 import sys
-import os.path
+import os
 import pyinotify
 sys.path.insert(0, '../../Server/ftpserver/')
 from client import OneDirFptClient
@@ -10,11 +10,10 @@ class ModHandler(pyinotify.ProcessEvent):
     print "IN HERE"
     #o = OneDirFptClient("172.27.108.250", "admin", "admin", "root_dir") #at school
     global o
-    o = OneDirFptClient("127.27.99.34", "admin", "admin", "root_dir")
+    #o = OneDirFptClient("127.27.99.34", "admin", "admin", "root_dir")
 
     def __init__(self):
-        print "SUP"
-        self.directory=False
+	self.directory=False
         self.movedTo=False
         self.movedFrom=False
         self.create=False
@@ -23,16 +22,14 @@ class ModHandler(pyinotify.ProcessEvent):
 
     # --- If a file or directory is CREATED or MODIFIED---
     def process_IN_CREATE(self, event):
-        print 'Created: '
         self.directory = event.dir
         self.create = True
         self.filename = event.pathname
         self.post_processing()
-        print "event path: ", event.path
+        print "Created: %s " % os.path.join(event.path, event.name)
 
     # --- If a file or directory is DELETED or RENAMED or MODIFIED---
     def process_IN_MOVED_FROM(self, event):
-        print 'Moved From'
         self.directory = event.dir
         self.movedFrom=True
         self.filename = os.path.join(event.path, event.name)
@@ -41,14 +38,12 @@ class ModHandler(pyinotify.ProcessEvent):
 
 
     def process_IN_DELETE(self, event):
-        print 'Deleted'
         self.directory = event.dir
         self.movedFrom=True
         self.post_processing()
         #print "event path:", event.path
 
     def process_IN_MOVED_TO(self, event):
-        print 'Move To'
         self.directory = event.dir
         self.movedTo=True
         self.post_processing()
@@ -62,12 +57,13 @@ class ModHandler(pyinotify.ProcessEvent):
         directory=self.directory
         filename=self.filename
         filenameTo=self.filenameTo
+	'''
         print "Moved From: " + str(movedFrom)
         print "Moved To: " + str(movedTo)
         print "Create: " + str(create)
         print "filename: " + filename
         print "filename destination: " + filenameTo
-
+	'''
         # Delete
         #global o
         if (movedFrom and not movedTo and not create):
@@ -102,11 +98,11 @@ class ModHandler(pyinotify.ProcessEvent):
         elif (create and not movedTo and not movedFrom):
             if directory:
                 #o.mkdir(filename)
-                print "mkdir param: ", filename
+                #print "mkdir param: ", filename
                 print "Directory Create!"
             else:
                 #o.upload(filename)
-                print "upload param:", filename
+                #print "upload param:", filename
                 print "File Created!"
         else:
             print "Rename or Modification!"
@@ -119,36 +115,55 @@ class ModHandler(pyinotify.ProcessEvent):
         self.movedFrom=False
         self.create=False
 
+
 def main():
     # --- Values ---
-    #directory="/home/ubuntu/Documents/School/Spring_2014/Software_Development/THE_PROJECT"
-    directory = "/home/rupali/Documents/CS3240/OneDir"
-    mask = pyinotify.ALL_EVENTS | pyinotify.IN_DELETE
+    directory="/home/ubuntu/Documents/School/Spring_2014/Software_Development/OneDir/extra/WatchTesting"
+    #directory = "/home/rupali/Documents/CS3240/OneDir"
+    #print directory
+
+    '''
+    maskMoveTo = pyinotify.IN_MOVED_TO
+    maskCreate = pyinotify.IN_CREATE
+    maskDelete = pyinotify.IN_MOVED_FROM
 
     # --- Initialization ---
     wm = pyinotify.WatchManager()
-    handler = ModHandler()
-    notifier = pyinotify.Notifier(wm, handler)
+    creates = pyinotify.WatchManager()
+    deletes = pyinotify.WatchManager()
+    modifies = pyinotify.WatchManager()
+    notifier = pyinotify.Notifier(wm, ModHandler())
 
-    # Add a new watch on the directory for ALL_EVENTS.
-    wm.add_watch(directory, mask, rec=True)
+    # Add a new watch on the directory for Renames && Modified.
+    # modifies.add_watch(directory, maskMoveTo, rec=True)
 
-    # Add a new watch on the directory for a file being MODIFIED
-    #wm.add_watch(directory, pyinotify.IN_MODIFY)
+    # Add a new watch on the directory for Creates.
+    creates.add_watch(directory, maskCreate, rec=True)
+    modifies.add_watch(directory, maskMoveTo, rec=True)
+    creates.add_watch(directory, maskDelete, rec=True)
 
-    # Add a new watch on the directory for a file that is CREATED
-    #wm.add_watch(directory, pyinotify.IN_CREATE)
-
-    # Add a new watch on the directory for a file that is DELETED
-    #wm.add_watch(directory, pyinotify.IN_DELETE)
-
-    # Add a new watch on the directory for a file that is RENAMED??????
-    #wm.add_watch(directory, pyinotify.IN_ATTRIB)
-
-    # Add a new watch on the directory for all of the above in a SUBDIRECTORY???
+    # Add a new watch on the directory for Deletes.
+    deletes.add_watch(directory, maskDelete, rec=True)
 
     # Loop forever and handle events.
     notifier.loop()
+    '''
+    wm = pyinotify.WatchManager()
+    mask = pyinotify.IN_CREATE | pyinotify.IN_MOVED_FROM | pyinotify.IN_DELETE
+    
+    notifier = pyinotify.Notifier(wm, ModHandler())
+
+    wdd = wm.add_watch(directory, mask, rec=True)
+
+    while True:
+	try:
+            notifier.process_events()
+            if notifier.check_events():
+                notifier.read_events()
+        except KeyboardInterrupt:
+            notifier.stop()
+            break
+
 
 if __name__ == '__main__':
     main()
