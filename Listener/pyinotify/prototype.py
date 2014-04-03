@@ -124,7 +124,7 @@ class ModHandler(pyinotify.ProcessEvent):
 	'''
 
 def main():
-    directory="/home/ubuntu/Documents/School/Spring_2014/Software_Development/OneDir/extra/WatchTesting"
+    directory="../../extra/WatchTesting"
     #directory = "/OneDir"
     #print directory
 
