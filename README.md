@@ -29,3 +29,24 @@ Any database needs should use SQLite as an embedded database on the same machine
 When appropriate, JSON should be considered for passing or storing certain kinds of information.
 Setting up and starting both the client and server software should be simple and quick to do.
 Security issues matter to the customer, and specific security related issues may be brought up later in the project.
+
+## Install
+### Dependencies:
+#### Server:
+```
+sudo pip install pyftpdlib
+sudo pip install sendfile
+```
+#### Listener:
+```
+sudo pip install pyinotify
+```
+#### Other:
+```
+sudo apt-get install python-crypto
+sudo pip install simple-crypt
+```
+### Fixing imports:
+```
+sudo ln -s /absolute/path/to/OneDir/ /usr/local/lib/python2.7/dist-packages/OneDir
+```
