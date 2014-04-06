@@ -45,6 +45,9 @@ sudo pip install pyinotify
 ```
 sudo apt-get install python-crypto
 sudo pip install simple-crypt
+cd /usr/lib/python2.7/dist-packages/Crypto/Protocol
+# IF KDF.PY is not in the folder! 
+sudo wget https://raw.github.com/dlitz/pycrypto/master/lib/Crypto/Protocol/KDF.py
 ```
 ### Fixing imports:
 ```
