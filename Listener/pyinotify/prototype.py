@@ -92,6 +92,7 @@ class ModHandler(pyinotify.ProcessEvent):
 		self.stack.append("Moved_To")
 
     def post_processing(self):
+    	# --- Creation/Deletion ---
 	if len(self.stack) is 1:
 		if self.stack[0] is "Create":
 		        print "Created: %s " % self.full
@@ -99,11 +100,13 @@ class ModHandler(pyinotify.ProcessEvent):
 		        print "Deleted: %s " % self.full
 		else:
 			print "Error"
+	# --- Rename ---
 	elif len(self.stack) is 2:
 		if self.stack[0] is "Moved_From" and self.stack[1] is "Moved_To":			
 			print "Renamed: %s" % self.full
 		else:
 			print "Error"
+	# --- Modified ---
 	elif len(self.stack) is 3:
 		if self.stack[0] is "Create" and self.stack[1] is "Moved_From" and self.stack[2] is "Moved_To":			
 			print "Modified: %s" % self.full
