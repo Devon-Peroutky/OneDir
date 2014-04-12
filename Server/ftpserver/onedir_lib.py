@@ -1,77 +1,305 @@
+from pyftpdlib.log import logger
 import os, inspect, sys
-from command_creator import CommandCreator, NamingError
-from pyftpdlib.authorizers import DummyAuthorizer
-from pyftpdlib.handlers import *
-
-sys.path.insert(0, '../sql/')
-from sql_manager import TableManager
-
+from shutil import rmtree
+from hashlib import md5
+from binascii import b2a_base64
+from pyftpdlib.authorizers import DummyAuthorizer, AuthenticationFailed
+from pyftpdlib.handlers import _strerror, FTPHandler, BufferedIteratorProducer
+from OneDir.Server.sql.sql_manager import TableManager, TableAdder, TableRemover
+from datetime import datetime
 
 __author__ = 'Justin Jansen'
-__status__ = 'Prototype'
-__diate__ = '03/13/14'
-
-cmd_creator = None
-users_database = None
+__status__ = 'Development'
+__date__ = '04/10/14'
 
 
-def set_command_creator(user_module, admin_module):
+# TODO write a method to print the entire tree, client side
+
+class handler(FTPHandler):
     """
-    This saves us from having to override a class or two in order to use command creater in 
-    OneDirHandler.  It basically is a pre constructor constructor. 
+    This handles all the commands called to server, and user logins.
     """
-    global cmd_creator
-    c = CommandCreator()
-    users = inspect.getmembers(user_module, inspect.isfunction)
-    for func in users:
-        try:
-            c.add_cmd(func[1])
-        except NamingError:
-            pass
-    admins = inspect.getmembers(admin_module, inspect.isfunction)
-    for func in admins:
-        try:
-            c.add_cmd(func[1], is_admin=True)
-        except NamingError:
-            pass
-    cmd_creator = c
-
-
-class OneDirHandler(FTPHandler):
+    
     def __init__(self, conn, server, ioloop=None):
         FTPHandler.__init__(self, conn, server, ioloop)
-        self.users_database = users_database
-        cl = cmd_creator.find_class()
-        global proto_cmds
-        cmd_creator.create_methods(cl, proto_cmds)
+        self.__add_proto_cmds()
+        self.users = TableManager(container.get_acc_db(), container.get_acc_table())
+    
+    def __add_proto_cmds(self):
+        """
+        For defining any SITE commands.
+        """
+        self.proto_cmds['SITE USERADD'] = {'auth': True, 'help': "SITE USERADD  <args>", 'perm': 'M', 'arg': True}
+        self.proto_cmds['SITE USERDEL'] = {'auth': True, 'help': "SITE USERRM  <args>", 'perm': 'M', 'arg': True}
+        self.proto_cmds['SITE DEACTIV'] = {'auth': True, 'help': "SITE DEACTIV ", 'perm': 'e', 'arg':False}
+        self.proto_cmds['SITE SYNC'] = {'auth':True, 'help':"SITE SYNC", 'perm':'r', 'arg':True}      
+        self.proto_cmds['SITE GETLOG'] = {'auth':True, 'help':"SITE SYNC", 'perm':'M', 'arg':False}
+        self.proto_cmds['SITE USERLIST'] = {'auth':True, 'help':"SITE USERLIST", 'perm':'M', 'arg':False}
+        # TODO change password.
 
+    def ftp_SITE_USERADD(self, line):
+        """
+        Admin command: Add user to database. 
+        @param line: Is a single string representing 5 args. see __user_add. 
+        """
+        try:
+            args = self.__strip_path_to_list(line)
+            msg = "Expected 4 Args: text, int, txt, txt. Recieved: %s" % ' '.join(args)
+            if not len(args) == 4:
+                raise AttributeError(msg + ' ' + str(len(args)))
+            args[1] = int(args[1])
+            if not (args[1] == 0 or args[1] == 1):
+                raise AttributeError(msg)
+            rep = self.__user_add(args[0], int(args[1]), args[2], args[3])
+            self.respond('200 %s' % rep)
+        except:
+            err = sys.exc_info()[1]
+            why = _strerror(err)
+            self.respond('550 ' + why)
 
-class OneDirAuthorizer(DummyAuthorizer):
+    def ftp_SITE_USERDEL(self, line):  # TODO
+        """
+        Admin Command: Removes a user from the database, 
+        and removes their directoy from the file system.
+        @param line: represents the username.  see __user_remove.
+        """
+        try:
+            args = self.__strip_path_to_list(line)
+            if not len(args) == 1:
+                raise AttributeError('Expecting single arg. Not: %s.' % str(args))
+            rep = self.__user_remove(args[0])
+            self.respond('200 %s' % rep)
+        except:
+            err = sys.exc_info()[1]
+            why = _strerror(err)
+            self.respond('550 ' + why)
+
+    def ftp_SITE_DEACTIV(self, line):
+        """
+        User Command: deactivate profile, delete everything.
+        @param line: none
+        """
+        username = self.__dict__['username']
+        self.__user_remove(username)
+        self.ftp_QUIT(line)
+
+    def ftp_SITE_SYNC(self, line):
+        """
+        User Commad: Gets a list of files that needs syncing.
+        @param line: represents the user id. (not username)
+        @return: a list of files that need to be synced.  
+        """
+        try:
+            time = self.__strip_path_to_list(line)
+            if not len(time) == 2:
+                raise AttributeError('Expecting a single arg')
+            time = ' '.join(time)
+            ret = self.__sync(time)
+            ret = [str(x) + '\n' for x in ret]
+            ret = iter(ret)
+            producer = BufferedIteratorProducer(ret)
+        except:
+            err = sys.exc_info()[1]
+            why = _strerror(err)
+            self.respond('550 ' + why)
+        else:
+            self.push_dtp_data(producer, isproducer=True, cmd='SITE SYNC')
+            return line
+    
+    def ftp_SITE_GETLOG(self, line):
+        """
+        Admin Command: Gets the location of the log file. 
+        @param line: none. (all ftp_ commands have a param regardless if they use it)
+        @return:  The location of the log file on the server. 
+        """
+        try:
+            self.respond('200 %s' % container.get_log_file())
+        except:
+            err = sys.exec_info()[1]
+            why = _strerror(err)
+            self.respond('550 %s' % why)
+
+    def ftp_SITE_USERLIST(self, line):
+        """  
+
+        """  # TODO
+        try:
+            ret = self.__user_list()
+            ret = [str(x) + '\n' for x in ret]
+            ret = iter(ret)
+            producer = BufferedIteratorProducer(ret)
+        except:
+            err = sys.exc_info()[1]
+            why = _strerror(err)
+            self.respond('550 ' + why)
+        else:
+            self.push_dtp_data(producer, isproducer=True, cmd='SITE USERLIST')
+            return line
+
+    def __strip_path_to_list(self, line):
+        """ 
+        Private: do not call 
+        @param line: a line recieved by an ftp_ command
+        @return: a cleaned up list of the arguments passed in the line.
+        """
+        args = str(line).split(' ')
+        args[0] = args[0].split('/')[-1]
+        return args
+
+    def __user_add(self, name, status, password, salt): 
+        """ 
+        Private: do not call 
+        @param name: A unique username
+        @param status: A 0/1 integer. user=0/admin=1
+        @param password: A already salted password.
+        @param salt: The salt used on the password.
+        """
+        self.users.connect()
+        check = self.users.pull_where('name', name, '=', ['status'])
+        if not len(check) == 0:
+            raise AttributeError("'%s' name taken." % name)
+        args = [name, status, password, salt, 'welcome', 'goodbye']
+        self.users.quick_push(args)
+        self.users.disconnect()
+        ta = TableAdder(container.get_shares_db(), name)
+        ta.add_column('time')
+        ta.add_column('ip')
+        ta.add_column('cmd')
+        ta.commit()
+        del ta
+        user_dir = "%s/%s" % (container.get_root_dir(), name)
+        os.mkdir(user_dir)
+        return 'User added.'
+
+    def __user_remove(self, username):
+        """ 
+        Private: do not call 
+        @param user_name: The name of the user to remove.
+        """
+        username = str(username)
+        self.users.connect()
+        self.users.delete_where('name', username, '=')
+        self.users.disconnect()
+        tr = TableRemover(container.get_shares_db(), username)
+        user_dir = '%s/%s' % (container.get_root_dir(), username)
+        rmtree(user_dir)
+        return '%s deleted' % username
+
+    def __sync(self, time):  
+        """ 
+        Private: do not call 
+        @param time: The last time that the server was synced.
+        """
+        username = str(self.__dict__['username'])
+        with TableManager(container.get_shares_db(), username) as tm:
+            values = tm.pull_where('time', time, '>')
+        return values 
+
+    def log(self, msg, logfun=logger.info): 
+        """
+        Override method: To update user log ass well.
+        """
+        self.__update_user_actions(msg) 
+        FTPHandler.log(self, msg, logfun)
+
+    def __update_user_actions(self, msg): 
+        """
+        Private: Do not call.
+        @param msg: The command ran on the server. 
+        """
+        msg = str(msg)
+        when = str(datetime.now())
+        username = str(self.__dict__['username'])
+        if username:
+            try:
+                ip = self.__dict__['remote_ip']
+                with TableManager(container.get_shares_db(), username) as tm:
+                    tm.quick_push([when, ip, msg])
+            except NameError:  # Thrown when deleting a user
+                pass
+
+    def __user_list(self):
+        self.users.connect()
+        users = self.users.pull(col_list=['name', 'status', 'welcome', 'goodbye'])
+        self.users.disconnect()
+        users = [str(x) for x in users]
+        return users
+
+    ###{{{ Begin: Overrides }}}###
+    
+    # The following methods are designed to be overriden
+    # I have not found a use for them just yet, however
+    # I am going to leave them here as a reminder. 
+
+    def on_connect(self):
+        """
+        As of right now, I don't think this is needed. 
+        """
+        pass
+
+    def on_disconnect(self):
+        """
+        As of right now, I don't think this is needed.
+        """
+        pass
+
+    def on_login(self, username):
+        """
+        Manages file shares. 
+        """
+        pass
+
+    def on_login_failed(self, username, password):
+        """
+        As of right now, I don't think this is needed.
+        """
+        pass
+
+    def on_logout(self, username):
+        """
+        Maybe put a marker as gone?
+        """
+        pass
+
+    def on_file_sent(self, filename):
+        """
+        Checks for shares associated with the file. 
+        """
+        pass
+    
+    def on_file_recieved(self, filename):
+        """
+        Checks for shares associated with the file.
+        """
+        pass
+
+    def on_incomplete_file_sent(self, filename):
+        """
+        Marks the file for resend?
+        """
+        pass
+    
+    def on_incomplete_file_recieved(self, filename):
+        """
+        Deletes the file left over part of the file?
+        """
+        pass
+    
+    ###{{{ END: Overrides ]}}}###
+
+class authorizer(DummyAuthorizer):
     """
     Overriding the Authorizer to suit our needs.
     """
 
-    def __init__(self, database_name, table_name):
-        self.users = TableManager(database_name, table_name)
-        global users_database
-        users_database = (database_name, table_name)
-        self.username = 'username'
+    def __init__(self):
+        self.users = TableManager(container.get_acc_db(), container.get_acc_table())
+        self.username = 'name'
+        self.status = 'status'
         self.password = 'password'
-        self.homedir = 'dir'
-        self.perm = 'perm'
-        self.msg_login = 'login'
-        self.msg_quit = 'quit'
-        self._validate_table()
-
-    def _validate_table(self):
-        """
-        Checks that the table has the required information to validate a user 
-        """
-        must_have = [self.username, self.password, self.homedir, self.perm, self.msg_login, self.msg_quit]
-        for col in must_have:
-            if not col in self.users.table_col_names:
-                msg = 'Table missing column: %s -- The required columns are: %s' % (col, str(must_have))
-                raise ValueError(msg)
+        self.salt = 'salt'
+        self.welcome = 'welcome'
+        self.goodbye = 'goodbye'
 
     ###{{{ Begin: Remove Methods }}}###
 
@@ -93,7 +321,7 @@ class OneDirAuthorizer(DummyAuthorizer):
         """
         pass
 
-        ###{{{ End: Remove Methods }}}###
+    ###{{{ End: Remove Methods }}}###
 
     ###{{{ Begin: Overrides }}}###
 
@@ -109,7 +337,11 @@ class OneDirAuthorizer(DummyAuthorizer):
         if username != 'anonymous':
             self.users.connect()
             user_pw = self.users.pull_where(self.username, str(username), '=', [self.password])[0][0]
+            user_salt = self.users.pull_where(self.username, str(username), '=', [self.salt])[0][0]
             self.users.disconnect()
+            split = len(user_salt)/2
+            password = user_salt[:split] + password + user_salt[split:]
+            password = b2a_base64(md5(password).digest()).strip()
             if user_pw != password:
                 raise AuthenticationFailed(user_pw)
 
@@ -117,10 +349,10 @@ class OneDirAuthorizer(DummyAuthorizer):
         """
         Returns the home dir from the database
         """
-        self.users.connect()
-        homedir = unicode(self.users.pull_where(self.username, str(username), '=', [self.homedir])[0][0])
-        self.users.disconnect()
-        homedir = os.path.realpath(homedir)
+        homedir = container.get_root_dir()
+        if not self.has_perm(username, 'M'):
+            homedir = '%s/%s' % (homedir, username)    
+        homedir = unicode(homedir)
         return homedir
 
     def has_user(self, username):
@@ -149,27 +381,135 @@ class OneDirAuthorizer(DummyAuthorizer):
         Return current user permissions.
         """
         self.users.connect()
-        user_perm = unicode(self.users.pull_where(self.username, str(username), '=', [self.perm])[0][0])
+        user_perm = unicode(self.users.pull_where(self.username, str(username), '=', [self.status])[0][0])
         self.users.disconnect()
-        return user_perm
+        if user_perm:
+            return 'elradfmwM'
+        else:
+            return 'elradfmw'
 
-    def get_msg_login(self, username):
+    def get_msg_login(self, username): 
         """
         This is not really needed, but seems nice.
         """
         self.users.connect()
-        login = unicode(self.users.pull_where(self.username, str(username), '=', [self.msg_login])[0][0])
+        login = unicode(self.users.pull_where(self.username, str(username), '=', [self.welcome])[0][0])
         self.users.disconnect()
         return login
-
-    def get_msg_quit(self, username):
+        
+    def get_msg_quit(self, username): 
         """
         This is not really needed, but seems nice.
         """
         self.users.connect()
-        quit_msg = unicode(self.users.pull_where(self.username, str(username), '=', [self.msg_quit])[0][0])
+        try:
+            quit_msg = unicode(self.users.pull_where(self.username, str(username), '=', [self.goodbye])[0][0])
+        except IndexError:
+            quit_msg = 'Your account has now been deactivated'
         self.users.disconnect()
         return quit_msg
 
-        ###{{{ END: Overrides }}}###
+    ###{{{ END: Overrides }}}###
 
+
+class container(object):
+    """
+    This class is designed to hold a single instance of the information that handler and authorizer
+    need in order to function correctly. It also handles the checking of that information.  Though it 
+    is possible to set the variables directly, it is not recommended. 
+    """
+    
+    __accounts_db = None
+    __accounts_table = None
+    __shares_db = None
+    __root_dir = None
+    __log_file = None
+
+    def __init__(self):
+        """ Do not call. """
+        raise Exception('Static class. No __init__')
+
+    @staticmethod
+    def set_acc_db(accounts_db, table_name):
+        """
+        @param accounts_db: The name of the sqlite3 database that holds the user accounts.
+        """
+        if not os.path.exists(accounts_db):
+            raise AttributeError("The database %s not found." % accounts_db)
+        with TableManager(accounts_db, table_name) as tm:
+            account_columns = ['name', 'status', 'password', 'salt', 'welcome', 'goodbye']
+            for col in account_columns:
+                if not col in tm.table_col_names:
+                    msg = 'Table missing column: %s -- The required columns are: %s' % (col, str(must_have))
+                    raise AttributeError(msg)
+        container.__accounts_db = accounts_db
+        container.__accounts_table = table_name 
+                
+    @staticmethod
+    def set_shares_db(shares_db):
+        """
+        @param shares_db: the table that holds the users shares.
+        """
+        if os.path.exists(shares_db):
+            container.__shares_db = shares_db
+        else:
+            raise AttributeError("The database %s not found." % shares_db)
+
+    @staticmethod
+    def set_root_dir(root_dir):
+        """
+        @param root_dir: sets the root directory for the server.
+        """
+        if os.path.exists(root_dir):
+            container.__root_dir = root_dir 
+        else:
+            raise AttributeError("%s not in file system." % root_dir)
+
+
+    @staticmethod
+    def set_log_file(filename): 
+        """
+        @param filename: the full path to the logfile.
+        """
+        if container.__root_dir == None:
+            raise AttributeError('Please set root did before log file.')
+        else:
+            if not os.path.exists(filename):
+                with open(filename, 'w'):
+                    pass
+            container.__log_file = filename
+
+    @staticmethod
+    def get_acc_db():
+        """
+        @return: the name of of the accounts database.
+        """
+        return container.__accounts_db
+
+    @staticmethod
+    def get_acc_table():
+        """
+        @return: the name of the accounts table.
+        """
+        return container.__accounts_table
+
+    @staticmethod
+    def get_shares_db():
+        """
+        @return: the name of the shares database.
+        """
+        return container.__shares_db
+
+    @staticmethod
+    def get_root_dir():
+        """
+        @return: the name of the root dir.
+        """
+        return container.__root_dir
+    
+    @staticmethod
+    def get_log_file():  
+        """
+        @return: the path to the logfile.
+        """
+        return container.__log_file

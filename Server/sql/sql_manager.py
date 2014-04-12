@@ -265,6 +265,20 @@ class TableManager(SqlManager):
         command = 'SELECT %s FROM %s WHERE %s;' % (cols, self.table_name, comp)
         return self._fetch_command(command)
 
+    def delete_where(self, value, compare_to, operator):
+        """
+        Resembles: SELECT col_list FROM table_name WHERE value (operator) compare_to;
+        @param value: the column name of the value you want to compare with
+        @param compare_to: value to compare against
+        @param operator: '=', '!=', '<>', '>', '<', '>=', '<='
+        """
+        operators = ['=', '!=', '<>', '>', '<', '>=', '<=']
+        if not operator in operators:
+            raise ValueError('Excepted operators: %s' % str(operators)[1:-1])
+        comp = "%s%s'%s'" % (str(value), str(operator), str(compare_to))
+        command = 'DELETE FROM %s WHERE %s;' % (self.table_name, comp)
+        self._no_fetch_command(command)        
+
     def __enter__(self):
         """
         For 'with'
