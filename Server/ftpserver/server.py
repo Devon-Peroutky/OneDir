@@ -1,10 +1,11 @@
 #!/usr/bin/python2
 
 import os, logging
-from hashlib import md5
-from random import choice
-from binascii import b2a_base64
-from hash_chars import hash_chars
+#from hashlib import md5
+#from random import choice
+#from binascii import b2a_base64
+#from hash_chars import hash_chars
+from hash_chars import gen_hash, gen_salt
 from pyftpdlib.servers import FTPServer
 from OneDir.Server.sql.sql_manager import TableAdder, TableManager
 from OneDir.Server.ftpserver.onedir_lib import authorizer, handler, container
@@ -32,16 +33,21 @@ def main(db_name, table_name, shares_db):
     del ta
     with TableManager(db_name, table_name) as tm:
         password = 'admin'
-        salt = ''.join(choice(hash_chars) for i in range(100))
-        split = len(salt)/2
-        password = salt[:split] + password + salt[split:]
-        password = b2a_base64(md5(password).digest()).strip()
+        #salt = ''.join(choice(hash_chars) for i in range(100))
+        #split = len(salt)/2
+        #password = salt[:split] + password + salt[split:]
+        #password = b2a_base64(md5(password).digest()).strip()
+        salt = gen_salt()
+        password = 'admin'
+        password = gen_hash(password, salt)
         row = ['admin', 1, password, salt, 'welcome', 'goodbye']
         tm.quick_push(row)
     ta = TableAdder(shares_db, 'admin')
     ta.add_column('time')
     ta.add_column('ip')
     ta.add_column('cmd')
+    ta.add_column('line')    # comment out if switching to log based user logs
+    ta.add_column('arg')  # comment out if switching to log based user logs
     ta.commit()
     container.set_acc_db(db_name, table_name)
     container.set_shares_db(shares_db)  

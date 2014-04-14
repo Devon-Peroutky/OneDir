@@ -1,17 +1,15 @@
 from pyftpdlib.log import logger
 import os, inspect, sys, time
 from shutil import rmtree
-from hashlib import md5
-from binascii import b2a_base64
+from hash_chars import gen_hash, gen_salt
 from pyftpdlib.authorizers import DummyAuthorizer, AuthenticationFailed
 from pyftpdlib.handlers import _strerror, FTPHandler, BufferedIteratorProducer
 from OneDir.Server.sql.sql_manager import TableManager, TableAdder, TableRemover
-# from datetime import datetime
 import ntplib
 
 __author__ = 'Justin Jansen'
 __status__ = 'Development'
-__date__ = '04/10/14'
+__date__ = '04/14/14'
 
 
 # TODO write a method to print the entire tree, client side
@@ -36,7 +34,8 @@ class handler(FTPHandler):
         self.proto_cmds['SITE SYNC'] = {'auth':True, 'help':"SITE SYNC", 'perm':'r', 'arg':True}      
         self.proto_cmds['SITE GETLOG'] = {'auth':True, 'help':"SITE SYNC", 'perm':'M', 'arg':False}
         self.proto_cmds['SITE USERLIST'] = {'auth':True, 'help':"SITE USERLIST", 'perm':'M', 'arg':False}
-        # TODO change password.
+        self.proto_cmds['SITE CHANGEPW'] = {'auth':True, 'help':'SITE CHANGEPW <args>', 'perm':'M', 'arg':True}
+        self.proto_cmds['SITE SETPW'] = {'auth':True, 'help':'SITE SETPW <args>', 'perm':'e', 'arg':True}
 
     def ftp_SITE_USERADD(self, line):
         """
@@ -45,20 +44,20 @@ class handler(FTPHandler):
         """
         try:
             args = self.__strip_path_to_list(line)
-            msg = "Expected 4 Args: text, int, txt, txt. Recieved: %s" % ' '.join(args)
-            if not len(args) == 4:
+            msg = "Expected 3 Args: text, int, txt, txt. Recieved: %s" % ' '.join(args)
+            if not len(args) == 3:
                 raise AttributeError(msg + ' ' + str(len(args)))
             args[1] = int(args[1])
             if not (args[1] == 0 or args[1] == 1):
                 raise AttributeError(msg)
-            rep = self.__user_add(args[0], int(args[1]), args[2], args[3])
+            rep = self.__user_add(args[0], int(args[1]), args[2])
             self.respond('200 %s' % rep)
         except:
             err = sys.exc_info()[1]
             why = _strerror(err)
             self.respond('550 ' + why)
 
-    def ftp_SITE_USERDEL(self, line):  # TODO
+    def ftp_SITE_USERDEL(self, line):  
         """
         Admin Command: Removes a user from the database, 
         and removes their directoy from the file system.
@@ -137,6 +136,43 @@ class handler(FTPHandler):
         else:
             self.push_dtp_data(producer, isproducer=True, cmd='SITE USERLIST')
             return line
+    
+    def ftp_SITE_CHANGEPW(self, line):
+        """
+        Admin Command: Change user password.
+        @param line: username
+        @param line: new password
+        """
+        try:
+            args = self.__strip_path_to_list(line)
+            if not len(args) == 2:
+                msg = 'Expecting: username, new password. Not: %s' % str(args)
+                raise AttributeError(msg)
+            ret = self.__admin_change_password(args[0], args[1])
+            self.respond('200 %s' % ret) 
+        except:
+            err = sys.exc_info()[1]
+            why = _strerror(err)
+            self.respond('550 %s' % why)
+
+    def ftp_SITE_SETPW(self, line):
+        """
+        User Command: Change their own password.
+        @param line: old password.
+        @param line: new password. 
+        """
+        try:
+            args = self.__strip_path_to_list(line)
+            if not len(args) == 2:
+                msg = 'Expecting: old password, new password.' 
+                raise AttributeError(msg)
+            ret = self.__user_change_password(args[0], args[1])
+            self.respond('200 %s' % ret)
+        except:
+            err = sys.exc_info()[1]
+            why = _strerror(err)
+            self.respond('550 %s' % why)
+
 
     def __strip_path_to_list(self, line):
         """ 
@@ -148,7 +184,7 @@ class handler(FTPHandler):
         args[0] = args[0].split('/')[-1]
         return args
 
-    def __user_add(self, name, status, password, salt): 
+    def __user_add(self, name, status, password): 
         """ 
         Private: do not call 
         @param name: A unique username
@@ -159,7 +195,10 @@ class handler(FTPHandler):
         self.users.connect()
         check = self.users.pull_where('name', name, '=', ['status'])
         if not len(check) == 0:
+            self.users.disconnect()
             raise AttributeError("'%s' name taken." % name)
+        salt = gen_salt()
+        password = gen_hash(str(password), salt)
         args = [name, status, password, salt, 'welcome', 'goodbye']
         self.users.quick_push(args)
         self.users.disconnect()
@@ -239,11 +278,54 @@ class handler(FTPHandler):
                 pass
     
     def __user_list(self):
+        """
+        Private: Do not call.
+        @return: a list of users and some basic info about them.
+        """
         self.users.connect()
         users = self.users.pull(col_list=['name', 'status', 'welcome', 'goodbye'])
         self.users.disconnect()
         users = [str(x) for x in users]
         return users
+
+    def __admin_change_password(self, username, password):
+        """
+        Private: Do not call.
+        @username: The name of the user to change the password of.
+        @password: The plain text password.
+        """
+        self.users.connect()
+        salt = self.users.pull_where('name', username, '=', ['salt'])
+        if not len(salt) == 1:
+            msg = 'User %s not found.' % username
+            self.users.disconnect()
+            raise AttributeError(msg)
+        else:
+            password = gen_hash(password, salt[0][0])
+            self.users.update_where('name', str(username), 'password', password)
+            self.users.disconnect()
+            return 'Password Changed'        
+
+    def __user_change_password(self, old_pw, new_pw):
+        """
+        Private: Do not call.
+        @param old_pw: the old password.
+        @param new_pw: the new password.
+        """
+        username = str(self.__dict__['username'])
+        self.users.connect()
+        check = self.users.pull_where('name', username, '=', ['password','salt'])[0]
+        old_pw = gen_hash(old_pw, check[1])
+        if not old_pw == check[0]:
+            self.users.disconnect()
+            msg = 'Wrong old password'
+            raise AttributeError(msg)
+        else:
+            new_pw = gen_hash(new_pw, check[1])
+            self.users.update_where('name', username, 'password', new_pw)
+            self.users.disconnect()
+            return 'Password Changed'
+        
 
     ###{{{ Begin: Overrides }}}###
     
@@ -359,9 +441,7 @@ class authorizer(DummyAuthorizer):
             user_pw = self.users.pull_where(self.username, str(username), '=', [self.password])[0][0]
             user_salt = self.users.pull_where(self.username, str(username), '=', [self.salt])[0][0]
             self.users.disconnect()
-            split = len(user_salt)/2
-            password = user_salt[:split] + password + user_salt[split:]
-            password = b2a_base64(md5(password).digest()).strip()
+            password = gen_hash(password, user_salt)
             if user_pw != password:
                 raise AuthenticationFailed(user_pw)
 

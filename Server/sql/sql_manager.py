@@ -242,7 +242,7 @@ class TableManager(SqlManager):
         command = 'SELECT %s FROM %s;' % (values, self.table_name)
         return self._fetch_command(command)
 
-    def pull_where(self, value, compare_to, operator, col_list=[]):
+    def pull_where(self, value, compare_to, operator, col_list=[]):  
         """
         Resembles: SELECT col_list FROM table_name WHERE value (operator) compare_to;
         @param value: the column name of the value you want to compare with
@@ -275,9 +275,32 @@ class TableManager(SqlManager):
         operators = ['=', '!=', '<>', '>', '<', '>=', '<=']
         if not operator in operators:
             raise ValueError('Excepted operators: %s' % str(operators)[1:-1])
-        comp = "%s%s'%s'" % (str(value), str(operator), str(compare_to))
+        if type(compare_to) == str:
+            comp = "%s%s'%s'" 
+        else:
+            comp = "%s%s%s" 
+        comp = comp % (str(value), str(operator), str(compare_to))
         command = 'DELETE FROM %s WHERE %s;' % (self.table_name, comp)
         self._no_fetch_command(command)        
+
+    def update_where(self, comp_col, comp_val, set_col, set_to):
+        """
+        Resembles: UPDATE tablename SET set_col=set_to WHERE comp_col=comp_val;
+        @param comp_col: Name of column to compare.
+        @param comp_val: The value you are looking for.
+        @param set_col: The name of the column to change
+        @param set_to: The changed value. 
+        """
+        if type(comp_val) == str and type(set_to) == str:
+            command = "UPDATE %s SET %s='%s' WHERE %s='%s';"
+        elif type(comp_val) == str:
+            command = "UPDATE %s SET %s=%s WHERE %s='%s';"
+        elif type(set_to) == str:
+            command = "UPDATE %s SET %s='%s' WHERE %s=%s;"
+        else:
+            command = "UPDATE %s SET %s=%s WHERE %s=%s;"
+        command = command % (self.table_name, str(set_col), str(set_to), str(comp_col), str(comp_val))
+        self._no_fetch_command(command)
 
     def __enter__(self):
         """

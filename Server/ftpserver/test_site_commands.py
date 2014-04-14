@@ -1,9 +1,5 @@
 #!/usr/bin/python2
 
-from hashlib import md5
-from random import choice
-from hash_chars import hash_chars 
-from binascii import b2a_base64
 from ftplib import FTP
 from nose import with_setup
 from OneDir.extra.testhelper.helpers import n_eq, n_ok
@@ -15,12 +11,7 @@ port = 21
 admin = 'admin'
 admin_pw = 'admin'
 
-salt = ''.join(choice(hash_chars) for i in range(100))
 password = 'abc'
-split = len(salt)/2
-password = salt[:split] + password + salt[split:]
-password = b2a_base64(md5(password).digest()).strip()
-#start = str(datetime.now())    
 start = ntplib.NTPClient()
 start = start.request('pool.ntp.org')
 start = time.strftime('%Y%m%d%H%M%S', time.localtime(start.tx_time))
@@ -105,7 +96,7 @@ def test_user_add():
     Checks that user is in database.
     """
     expected = '200'
-    ftp.sendcmd('site useradd user_one 0 %s %s' % (password, salt))
+    ftp.sendcmd('site useradd user_one 0 %s' % password)
     actual = ftp.lastresp
     ftp.retrlines('site userlist', callback)
     line = "('user_one', 0, 'welcome', 'goodbye')"
@@ -144,7 +135,7 @@ def test_deactivate():
     Attempts to log in again.
     @requires: user_add to pass
     """
-    ftp.sendcmd('site useradd user_two 0 %s %s' % (password, salt))
+    ftp.sendcmd('site useradd user_two 0 %s' % password)
     f = FTP()
     f.connect(ip)
     f.login('user_two', 'abc')
@@ -171,7 +162,6 @@ def test_sync():
     x = ftp.retrlines('site sync %s' % start, callback)
     for r in received:
         print r
-    assert False
     if len(received) > 0:
         assert True
     else:
@@ -193,3 +183,60 @@ def test_get_log():
     else:
         print log
         n_ok(False)
+
+
+usr = 'user_three'
+new_pw = 'def' 
+
+
+@with_setup(setup_admin, teardown_admin)
+def test_admin_change_password():
+    """
+    Creates a new users.
+    Changes new user password.
+    Attempts to log in with new password.
+    Checks for responce code: 200
+    """
+    expected = '200'
+    ftp.sendcmd('site useradd %s 0 %s' % (usr, password))
+    ftp.sendcmd('site changepw %s %s' % (usr, new_pw))  
+    actual = ftp.lastresp
+    f = FTP()
+    f.connect(ip)
+    try:
+        f.login(usr, new_pw)
+        n_eq(expected, actual)
+    except:
+        n_ok(False, message='Authentication Failed')
+
+
+def test_user_change_password():
+    """
+    User logs in, and attemps to change their own password.
+    @requires: admin change password to work.
+    User logs out and then attemps to log in with new password.
+    Checks for responce code: 200
+    """
+    expected = '200'
+    f = FTP()
+    f.connect(ip)
+    f.login(usr, new_pw)
+    pw_three = 'hij'
+    f.sendcmd('site setpw %s %s' % (new_pw, pw_three))
+    actual = f.lastresp
+    f.quit()
+    f.close()
+    f.connect(ip)
+    try:
+        f.login(usr, pw_three)
+        n_eq(expected, actual)
+    except:
+        n_ok(False, message='Authentication Failed')
+
+def teardown_module():
+    f = FTP()
+    f.connect(ip)
+    f.login('admin', 'admin')
+    f.sendcmd('site userdel user_three')
+    f.quit()
+    f.close()
