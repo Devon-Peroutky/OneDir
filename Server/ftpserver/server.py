@@ -51,8 +51,10 @@ def main(db_name, table_name, shares_db):
     ta.commit()
     container.set_acc_db(db_name, table_name)
     container.set_shares_db(shares_db)  
-    container.set_root_dir('/home/justin/OneDir/Server/ftpserver/temp')
-    container.set_log_file('/home/justin/OneDir/Server/ftpserver/temp/pyftpd.log')
+    #container.set_root_dir('/home/justin/OneDir/Server/ftpserver/temp')
+    #container.set_log_file('/home/justin/OneDir/Server/ftpserver/temp/pyftpd.log')
+    container.set_root_dir(os.getcwd() + '/temp')
+    container.set_root_dir(os.getcwd() + '/temp/pyftpd.log')
     auth = authorizer()
     handle = handler
     handle.user_sendfile = True
