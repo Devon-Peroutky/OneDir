@@ -54,7 +54,7 @@ def main(db_name, table_name, shares_db):
     #container.set_root_dir('/home/justin/OneDir/Server/ftpserver/temp')
     #container.set_log_file('/home/justin/OneDir/Server/ftpserver/temp/pyftpd.log')
     container.set_root_dir(os.getcwd() + '/temp')
-    container.set_root_dir(os.getcwd() + '/temp/pyftpd.log')
+    container.set_log_file(os.getcwd() + '/temp/pyftpd.log')
     auth = authorizer()
     handle = handler
     handle.user_sendfile = True
