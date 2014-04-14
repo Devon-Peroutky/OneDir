@@ -36,10 +36,12 @@ Security issues matter to the customer, and specific security related issues may
 ```
 sudo pip install pyftpdlib
 sudo pip install sendfile
+sudo pip install ntplib
 ```
 #### Listener:
 ```
 sudo pip install pyinotify
+sudo pip install ntplib
 ```
 #### Other:
 ```
@@ -50,6 +52,7 @@ cd /usr/lib/python2.7/dist-packages/Crypto/Protocol
 sudo wget https://raw.github.com/dlitz/pycrypto/master/lib/Crypto/Protocol/KDF.py
 ```
 ### Fixing imports:
+This wont be nessary after writing a setup.py
 ```
 sudo ln -s /absolute/path/to/OneDir/ /usr/local/lib/python2.7/dist-packages/OneDir
 ```
