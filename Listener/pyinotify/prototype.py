@@ -3,17 +3,34 @@ import sys
 import os
 import pyinotify
 sys.path.insert(0, '../../Server/ftpserver/')
-from client import OneDirFptClient
+from client import OneDirFtpClient
 import datetime
 import logging
+import socket
 from apscheduler.scheduler import Scheduler
+
+o = OneDirFtpClient(socket.gethostbyname(socket.gethostname()), "admin", "admin", os.getcwd())
 
 class ModHandler(pyinotify.ProcessEvent):
     global o
-    global hit
 
-    #o = OneDirFptClient("172.27.108.250", "admin", "admin", "root_dir") #at school
-    #o = OneDirFptClient("127.27.99.34", "admin", "admin", "root_dir")
+    def create(self, theFile):
+        if self.isDir:
+            o.mkdir(theFile)
+        else:
+	    o.upload(theFile)
+        print "Created: %s " % theFile
+
+    def delete(self, theFile):
+        if self.isDir:
+            o.delete_folder(theFile)
+        else:
+            o.delete_file(theFile)
+        print "Deleted: %s " % theFile
+
+    def renameModification(self, fromFile, toFile):
+	self.create(toFile)
+	self.delete(fromFile)
 
     def __init__(self):
 
@@ -36,7 +53,6 @@ class ModHandler(pyinotify.ProcessEvent):
     def process(self):
 	self.post_processing()
 
-    # --- If a file or directory is CREATED or MODIFIED---
     def process_IN_CREATE(self, event):
 	self.currentTS = datetime.datetime.now()
         self.file = event.name
@@ -48,7 +64,7 @@ class ModHandler(pyinotify.ProcessEvent):
 	if (difference.total_seconds() < 1 and self.full is self.previousFull):
 		self.stack.append("Create")
 	else:
-		executionTime = self.currentTS+datetime.timedelta(seconds=1.5)
+		executionTime = self.currentTS+datetime.timedelta(seconds=.25)
 		job = self.schedule.add_date_job(lambda: self.process(), date=executionTime)
 		self.previousFull = event.pathname
 		self.initialTS=datetime.datetime.now()
@@ -56,6 +72,7 @@ class ModHandler(pyinotify.ProcessEvent):
 		self.stack.append("Create")
 
     def process_IN_MOVED_FROM(self, event):
+	self.previous=event.pathname
 	self.currentTS = datetime.datetime.now()
         self.file = event.name
 	self.path = event.path
@@ -66,7 +83,7 @@ class ModHandler(pyinotify.ProcessEvent):
 	if (difference.total_seconds() < 1 and self.stack[0] is "Create"):
 		self.stack.append("Moved_From")
 	else:
-		executionTime = self.currentTS+datetime.timedelta(seconds=1.5)
+		executionTime = self.currentTS+datetime.timedelta(seconds=.25)
 		job = self.schedule.add_date_job(lambda: self.process(), date=executionTime)
 		self.previousFull = event.pathname
 		self.initialTS=datetime.datetime.now()
@@ -84,7 +101,7 @@ class ModHandler(pyinotify.ProcessEvent):
 	if (difference.total_seconds() < 1 and self.stack[len(self.stack)-1] is "Moved_From"):
 		self.stack.append("Moved_To")
 	else:
-		executionTime = self.currentTS+datetime.timedelta(seconds=1.5)
+		executionTime = self.currentTS+datetime.timedelta(seconds=.25)
 		job = self.schedule.add_date_job(lambda: self.process(), date=executionTime)
 		self.previousFull = event.pathname
 		self.initialTS=datetime.datetime.now()
@@ -92,44 +109,33 @@ class ModHandler(pyinotify.ProcessEvent):
 		self.stack.append("Moved_To")
 
     def post_processing(self):
+	global o
     	# --- Creation/Deletion ---
 	if len(self.stack) is 1:
 		if self.stack[0] is "Create":
-		        print "Created: %s " % self.full
+			self.create(self.full)
 		elif self.stack[0] is "Moved_From":
-		        print "Deleted: %s " % self.full
+			self.delete(self.full)
 		else:
 			print "Error"
 	# --- Rename ---
 	elif len(self.stack) is 2:
 		if self.stack[0] is "Moved_From" and self.stack[1] is "Moved_To":			
+			self.renameModification(self.previous, self.full) 
 			print "Renamed: %s" % self.full
 		else:
 			print "Error"
 	# --- Modified ---
 	elif len(self.stack) is 3:
-		if self.stack[0] is "Create" and self.stack[1] is "Moved_From" and self.stack[2] is "Moved_To":			
+		if self.stack[0] is "Create" and self.stack[1] is "Moved_From" and self.stack[2] is "Moved_To":	
+			self.renameModification(self.previous, self.full) 					
 			print "Modified: %s" % self.full
 		else:
 			print "Error"
 	self.happened=True
-	
-	'''
-        #global o
-        if (movedFrom and not movedTo and not create):
-            if directory:
-                #global o
-                #o.delete_folder(filename)
-                print "Directory Deleted!"
-            else:
-		continue
-                #o.delete_file(filename)
-	'''
 
 def main():
-    directory="../../extra/WatchTesting"
-    #directory = "/OneDir"
-    #print directory
+    directory="."
 
     wm = pyinotify.WatchManager()
     mask = pyinotify.IN_CREATE | pyinotify.IN_MOVED_FROM | pyinotify.IN_MOVED_TO
