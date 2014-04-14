@@ -27,6 +27,7 @@ class OneDirFtpClient(FTP):
         self.root_dir = root_dir
         self.__file_names = []
         self.__folder_names = []
+        self.__list_holder = []
 
     def cd(self, dir_name):
         """
@@ -153,3 +154,68 @@ class OneDirFtpClient(FTP):
         folder_name = deepcopy(self.__folder_names)
         self.__file_names = []
         return folder_name
+    
+    def __list_callback(self, line):
+        """
+        Private: Do not call. 
+        """
+        self.__list_holder += [line]
+
+    def __save_list_holder(self):
+        """
+        Used retrieve the list callback.
+        """
+        ret_list = deepcopy(self.__list_holder)
+        self.__list_holder = []
+        return ret_list 
+
+
+class OneDirAdminClient(OneDirFtpClient):
+    def user_add(self, username, password, is_admin=False):
+        """
+        Adds a user the servers database. 
+        @param username: The username of the person you want to add.
+        @param password: A plain text password.
+        @param is_admin: True if user needs admin privileges
+        """
+        command = "site useradd %s %s %s"
+        if is_admin:
+            command = command % (username, password, '1')
+        else:
+            command = command % (username, password, '0')
+        self.sendcmd(command)
+    
+    def user_del(self, username):
+        """
+        Completely deletes a user from the server.
+        @param username: The username to delete.
+        """
+        self.sendcmd('site userdel' % username)
+
+    def get_log(self):
+        """
+        Download the server log file into the current directory.
+        """
+        log_loc = self.sendcmd('site getlog')
+        with open(filename, 'wb') as w:
+            return self.retrbinary('retr %s' % log_loc, lambda x: w.write(x))
+
+    def get_user_list(self):
+        """
+        @return: A list of user on the server.
+        """
+        self.retrlines('site userlist', self.__list_callback)
+        ret = self.__save_list_holder(self)
+        for i in range(len(ret)):
+            ret[i] = eval(ret[i])
+        return ret
+
+    def change_user_password(self, username, password):
+        """
+        Changes a users password
+        @param username: the user who needs password change
+        @param password: the password to change it too.
+        """
+        self.sendcmd('site changepw %s %s' % (username, password))
+        
+    
