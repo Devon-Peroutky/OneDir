@@ -113,6 +113,17 @@ class OneDirFtpClient(FTP):
         """
         on_server = os.path.relpath(folder_name, self.root_dir)
         return self.__delete_folder(on_server)
+    
+    def sync(self, timestamp):
+        """
+        @param timestamp: The last time that the server and the client sync'd
+        @return: a list of tuples of commands sent the the server
+        """
+        self.retrlines('site sync %s' % timestamp, self.__list_callback)
+        ret = self.__save_list_holder()
+        for i in range(len(ret)):
+            ret[i] = eval(ret[i])
+        return ret
 
     def __delete_folder(self, server_path):
         """ 
