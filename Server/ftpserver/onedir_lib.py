@@ -1,12 +1,13 @@
 from pyftpdlib.log import logger
-import os, inspect, sys
+import os, inspect, sys, time
 from shutil import rmtree
 from hashlib import md5
 from binascii import b2a_base64
 from pyftpdlib.authorizers import DummyAuthorizer, AuthenticationFailed
 from pyftpdlib.handlers import _strerror, FTPHandler, BufferedIteratorProducer
 from OneDir.Server.sql.sql_manager import TableManager, TableAdder, TableRemover
-from datetime import datetime
+# from datetime import datetime
+import ntplib
 
 __author__ = 'Justin Jansen'
 __status__ = 'Development'
@@ -91,10 +92,9 @@ class handler(FTPHandler):
         """
         try:
             time = self.__strip_path_to_list(line)
-            if not len(time) == 2:
+            if not len(time) == 1:
                 raise AttributeError('Expecting a single arg')
-            time = ' '.join(time)
-            ret = self.__sync(time)
+            ret = self.__sync(time[0])
             ret = [str(x) + '\n' for x in ret]
             ret = iter(ret)
             producer = BufferedIteratorProducer(ret)
@@ -121,8 +121,10 @@ class handler(FTPHandler):
 
     def ftp_SITE_USERLIST(self, line):
         """  
-
-        """  # TODO
+        Admin Command: Get lists of users.
+        @param line: none
+        @return: a list of users  
+        """ 
         try:
             ret = self.__user_list()
             ret = [str(x) + '\n' for x in ret]
@@ -165,6 +167,8 @@ class handler(FTPHandler):
         ta.add_column('time')
         ta.add_column('ip')
         ta.add_column('cmd')
+        ta.add_column('line')
+        ta.add_column('arg')
         ta.commit()
         del ta
         user_dir = "%s/%s" % (container.get_root_dir(), name)
@@ -185,39 +189,55 @@ class handler(FTPHandler):
         rmtree(user_dir)
         return '%s deleted' % username
 
-    def __sync(self, time):  
+    def __sync(self, the_time):  
         """ 
         Private: do not call 
         @param time: The last time that the server was synced.
         """
         username = str(self.__dict__['username'])
         with TableManager(container.get_shares_db(), username) as tm:
-            values = tm.pull_where('time', time, '>')
+            values = tm.pull_where('time', the_time, '>=')
         return values 
 
-    def log(self, msg, logfun=logger.info): 
+    def pre_process_command(self, line, cmd, arg):
         """
-        Override method: To update user log ass well.
+        Override Method: Add user logging.
+        Should provide better info then override the 'log' method. 
         """
-        self.__update_user_actions(msg) 
-        FTPHandler.log(self, msg, logfun)
+        FTPHandler.pre_process_command(self, line, cmd, arg)
+        exclude = ['USER', 'TYPE', 'PASS', 'QUIT', 'PASV']
+        if not cmd in exclude:
+            self.__update_user_actions(line, cmd, arg)   
 
-    def __update_user_actions(self, msg): 
+    def __update_user_actions(self, line, cmd, arg):  
         """
         Private: Do not call.
-        @param msg: The command ran on the server. 
+        In most cases the cmd and arg will be the easiest way to duplicate a cmd. 
+        However, in some cases the full line will be needed.
+        @param line: The line that was passed to the server
+        @param cmd: The command for the server to call.
+        @param arg: The argument for the commands. 
         """
-        msg = str(msg)
-        when = str(datetime.now())
         username = str(self.__dict__['username'])
         if username:
             try:
-                ip = self.__dict__['remote_ip']
+                line = str(line) 
+                cmd = str(cmd)
+                args = str(arg)
+                when = ntplib.NTPClient()
+                while True:
+                    try:
+                        when = when.request('pool.ntp.org')
+                        break
+                    except:
+                        time.sleep(1)
+                when = time.strftime('%Y%m%d%H%M%S', time.localtime(when.tx_time))
+                ip = str(self.__dict__['remote_ip'])
                 with TableManager(container.get_shares_db(), username) as tm:
-                    tm.quick_push([when, ip, msg])
+                    tm.quick_push([when, ip, cmd, line, args])
             except NameError:  # Thrown when deleting a user
                 pass
-
+    
     def __user_list(self):
         self.users.connect()
         users = self.users.pull(col_list=['name', 'status', 'welcome', 'goodbye'])

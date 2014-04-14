@@ -8,6 +8,7 @@ from ftplib import FTP
 from nose import with_setup
 from OneDir.extra.testhelper.helpers import n_eq, n_ok
 from datetime import datetime
+import ntplib, time
 
 ip = '10.0.0.5'
 port = 21
@@ -19,7 +20,11 @@ password = 'abc'
 split = len(salt)/2
 password = salt[:split] + password + salt[split:]
 password = b2a_base64(md5(password).digest()).strip()
-start = str(datetime.now())    
+#start = str(datetime.now())    
+start = ntplib.NTPClient()
+start = start.request('pool.ntp.org')
+start = time.strftime('%Y%m%d%H%M%S', time.localtime(start.tx_time))
+
 
 ftp = None
 received = []
@@ -163,7 +168,10 @@ def test_sync():
     """
     Tries to get a list of events. That occurred for the admin user. During this test.
     """
-    ftp.retrlines('site sync %s' % start, callback)
+    x = ftp.retrlines('site sync %s' % start, callback)
+    for r in received:
+        print r
+    assert False
     if len(received) > 0:
         assert True
     else:
