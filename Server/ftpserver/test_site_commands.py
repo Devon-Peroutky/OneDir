@@ -4,7 +4,6 @@ from ftplib import FTP
 from nose import with_setup
 from OneDir.extra.testhelper.helpers import n_eq, n_ok
 from datetime import datetime
-import ntplib, time
 
 ip = '10.0.0.5'
 port = 21
@@ -12,10 +11,7 @@ admin = 'admin'
 admin_pw = 'admin'
 
 password = 'abc'
-start = ntplib.NTPClient()
-start = start.request('pool.ntp.org')
-start = time.strftime('%Y%m%d%H%M%S', time.localtime(start.tx_time))
-
+start = None
 
 ftp = None
 received = []
@@ -68,6 +64,28 @@ def teardown_admin():
         pass
     ftp = None
 
+
+@with_setup(setup_admin, teardown_admin)
+def test_get_time():
+    """
+    Tries to get the server time. 
+    Checks it length (for formatting)
+    Checks for responce code: 200
+    Tries to cast time to an int.
+    """
+    expected = '200'
+    x = ftp.sendcmd('site gettime')
+    actual = ftp.lastresp
+    x = x.split(' ')[1]
+    if len(x) == 20:
+        int(x)
+        global start
+        start = x
+        n_eq(expected, actual)
+    else:
+        print 'length: ', len(x)
+        print 'value', x
+        n_ok(False)
 
 @with_setup(setup_admin, teardown_admin)
 def test_user_list():
@@ -158,6 +176,7 @@ def test_deactivate():
 def test_sync():
     """
     Tries to get a list of events. That occurred for the admin user. During this test.
+    @requires: get time to pass
     """
     x = ftp.retrlines('site sync %s' % start, callback)
     for r in received:
@@ -232,6 +251,104 @@ def test_user_change_password():
         n_eq(expected, actual)
     except:
         n_ok(False, message='Authentication Failed')
+
+
+@with_setup(setup_admin, teardown_admin)
+def test_set_flag_one_arg():
+    """
+    Set a single arg flag in the database.
+    Checks for responce code: 200
+    Check for flag in sync.
+    @require: sync to pass.
+    """
+    expected = '200'
+    ftp.sendcmd('site setflag abc')
+    actual = ftp.lastresp
+    print start
+    ftp.retrlines('site sync %s' % start, callback)
+    check = False
+    for r in reversed(received):
+        x = eval(r)
+        if x[2] == 'FLAG':
+            if x[3] == 'abc' and x[4] == 'abc':
+                check = True
+                break
+    if check:
+        n_eq(expected, actual)
+    else:
+        n_ok(check, message='Flag not found')
+
+
+
+@with_setup(setup_admin, teardown_admin)
+def test_set_flag_two_args():
+    """
+    Set a single arg flag in the database.
+    Checks for responce code: 200
+    Check for flag in sync.
+    @require: sync to pass.
+    """
+    expected = '200'
+    ftp.sendcmd('site setflag abc def')
+    actual = ftp.lastresp
+    ftp.retrlines('site sync %s' % start, callback)
+    check = False
+    for r in reversed(received):
+        x = eval(r)
+        if x[2] == 'FLAG':
+            if x[3] == 'abc' and x[4] == 'def':
+                check = True
+                break
+    if check:
+        n_eq(expected, actual)
+    else:
+        for r in received:
+            print r
+        n_ok(check, message='Flag not found')
+
+@with_setup(setup_admin, teardown_admin)
+def test_who_am_i():
+    """
+    Ask the server for its secondary username.
+    Checks to see that it is ip adress still.
+    Checks for responce code: 200
+    """
+    expected = '200'
+    x = ftp.sendcmd('site whoami')
+    actual = ftp.lastresp
+    x = x.split(':')[-1]
+    x = x.split('.')
+    checker = True
+    for y in x:
+        try:
+            int(y)
+        except:
+            checker = False
+            break
+    if checker:
+        n_eq(expected, actual)
+    else:
+        n_ok(checker, message='not a ip')
+
+@with_setup(setup_admin, teardown_admin)
+def test_i_am():
+    """
+    Sets secondary username.
+    Checks for responce code: 200
+    Checks that the name was set. 
+    @requres: who am i to pass
+    """
+    expected = '200'
+    ftp.sendcmd('site iam abc')
+    actual = ftp.lastresp
+    x = ftp.sendcmd('site whoami')
+    x = x.split(':')
+    x[0] = x[0].split(' ')[1]
+    if x[0] == 'admin' and x[1] == 'abc':
+        n_eq(expected, actual)
+    else:
+        print x
+        n_ok(False, message='name not set')
 
 def teardown_module():
     f = FTP()

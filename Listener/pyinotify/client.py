@@ -116,6 +116,7 @@ class OneDirFtpClient(FTP):
     
     def sync(self, timestamp):
         """
+        NOTE: You should call get time right after using this. 
         @param timestamp: The last time that the server and the client sync'd
         @return: a list of tuples of commands sent the the server
         """
@@ -124,6 +125,22 @@ class OneDirFtpClient(FTP):
         for i in range(len(ret)):
             ret[i] = eval(ret[i])
         return ret
+
+    def deactivate_account(self):
+        """
+        Deactivates the account on the server.
+        """
+        self.sendcmd('site deactiv')
+
+    def set_password(self, new_pw, old_pw):
+        """
+        Changes the users password. Won't deactivate session.
+        No need to log out and back in.  
+        @param new_pw: plain text new password.
+        @param old_pw: plain text old password. 
+        """
+        f.sendcmd('site setpw %s $s' % (new_pw, old_pw))
+        
 
     def __delete_folder(self, server_path):
         """ 

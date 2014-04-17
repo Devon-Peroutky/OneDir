@@ -1,10 +1,6 @@
 #!/usr/bin/python2
 
 import os, logging
-#from hashlib import md5
-#from random import choice
-#from binascii import b2a_base64
-#from hash_chars import hash_chars
 from hash_chars import gen_hash, gen_salt
 from pyftpdlib.servers import FTPServer
 from OneDir.Server.sql.sql_manager import TableAdder, TableManager
@@ -33,10 +29,6 @@ def main(db_name, table_name, shares_db):
     del ta
     with TableManager(db_name, table_name) as tm:
         password = 'admin'
-        #salt = ''.join(choice(hash_chars) for i in range(100))
-        #split = len(salt)/2
-        #password = salt[:split] + password + salt[split:]
-        #password = b2a_base64(md5(password).digest()).strip()
         salt = gen_salt()
         password = 'admin'
         password = gen_hash(password, salt)
@@ -51,8 +43,6 @@ def main(db_name, table_name, shares_db):
     ta.commit()
     container.set_acc_db(db_name, table_name)
     container.set_shares_db(shares_db)  
-    #container.set_root_dir('/home/justin/OneDir/Server/ftpserver/temp')
-    #container.set_log_file('/home/justin/OneDir/Server/ftpserver/temp/pyftpd.log')
     container.set_root_dir(os.getcwd() + '/temp')
     container.set_log_file(os.getcwd() + '/temp/pyftpd.log')
     auth = authorizer()

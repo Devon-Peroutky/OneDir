@@ -1,11 +1,12 @@
 from pyftpdlib.log import logger
-import os, inspect, sys, time
+import os, inspect, sys 
 from shutil import rmtree
 from hash_chars import gen_hash, gen_salt
 from pyftpdlib.authorizers import DummyAuthorizer, AuthenticationFailed
 from pyftpdlib.handlers import _strerror, FTPHandler, BufferedIteratorProducer
 from OneDir.Server.sql.sql_manager import TableManager, TableAdder, TableRemover
-import ntplib
+from datetime import datetime
+
 
 __author__ = 'Justin Jansen'
 __status__ = 'Development'
@@ -23,19 +24,24 @@ class handler(FTPHandler):
         FTPHandler.__init__(self, conn, server, ioloop)
         self.__add_proto_cmds()
         self.users = TableManager(container.get_acc_db(), container.get_acc_table())
-    
+        self.me = self.__dict__['remote_ip']
+ 
     def __add_proto_cmds(self):
         """
         For defining any SITE commands.
         """
         self.proto_cmds['SITE USERADD'] = {'auth': True, 'help': "SITE USERADD  <args>", 'perm': 'M', 'arg': True}
-        self.proto_cmds['SITE USERDEL'] = {'auth': True, 'help': "SITE USERRM  <args>", 'perm': 'M', 'arg': True}
+        self.proto_cmds['SITE USERDEL'] = {'auth': True, 'help': "SITE USERDEL  <args>", 'perm': 'M', 'arg': True}
         self.proto_cmds['SITE DEACTIV'] = {'auth': True, 'help': "SITE DEACTIV ", 'perm': 'e', 'arg':False}
         self.proto_cmds['SITE SYNC'] = {'auth':True, 'help':"SITE SYNC", 'perm':'r', 'arg':True}      
         self.proto_cmds['SITE GETLOG'] = {'auth':True, 'help':"SITE SYNC", 'perm':'M', 'arg':False}
         self.proto_cmds['SITE USERLIST'] = {'auth':True, 'help':"SITE USERLIST", 'perm':'M', 'arg':False}
         self.proto_cmds['SITE CHANGEPW'] = {'auth':True, 'help':'SITE CHANGEPW <args>', 'perm':'M', 'arg':True}
         self.proto_cmds['SITE SETPW'] = {'auth':True, 'help':'SITE SETPW <args>', 'perm':'e', 'arg':True}
+        self.proto_cmds['SITE GETTIME'] = {'auth':True, 'help':'SITE GETTIME', 'perm':'r', 'arg':False}
+        self.proto_cmds['SITE SETFLAG'] = {'auth':True, 'help':'SITE SETFLAG', 'perm':'e', 'arg':True}
+        self.proto_cmds['SITE WHOAMI'] = {'auth':True, 'help':'SITE WHOAMI', 'perm':'r', 'arg':False}
+        self.proto_cmds['SITE IAM'] = {'auth':True, 'help':'SITE IAM', 'perm':'e', 'arg':True}
 
     def ftp_SITE_USERADD(self, line):
         """
@@ -173,6 +179,51 @@ class handler(FTPHandler):
             why = _strerror(err)
             self.respond('550 %s' % why)
 
+    def ftp_SITE_GETTIME(self, line):
+        try:
+            the_time = self.__get_time()
+            self.respond('200 %s' % the_time)
+        except:
+            err = sys.exc_info()[1]
+            why = _strerror(err)
+            self.respond('550 %s' % why)
+
+    def ftp_SITE_SETFLAG(self, line):
+        try:
+            args = self.__strip_path_to_list(line)
+            if not (len(args) > 0 and len(args) <= 2):
+                msg = 'Need 1 or 2 args. Recieved: %s' % str(len(args))
+                raise AttributeError(msg)
+            else:
+                ret = self.__set_flag(args)
+                ret = 'a'
+                self.respond('200 %s' % ret)
+        except:
+            err = sys.exc_info()[1]
+            why = _strerror(err)
+            self.respond('550 %s' % why)
+    
+    def ftp_SITE_WHOAMI(self, line):
+        try:
+            ret = '%s:%s' % (str(self.__dict__['username']), self.me)
+            self.respond('200 %s' % ret)
+        except:
+            err = sys.exc_info()[1]
+            why = _strerror(err)
+            self.respond('550 %s' % why)
+    
+    def ftp_SITE_IAM(self, line):
+        try:
+            arg = self.__strip_path_to_list(line)
+            if not len(arg) == 1:
+                msg = 'Expecting single arg. Recieved: %s' % str(arg)
+                raise AttributeError(msg)
+            self.me = arg[0]
+            self.respond('200 You are now know as: %s:%s' % (str(self.__dict__['username']), arg[0]))
+        except:
+            err = sys.exc_info()[1]
+            why = _strerror(err)
+            self.respond('550 %s' % why)
 
     def __strip_path_to_list(self, line):
         """ 
@@ -263,15 +314,8 @@ class handler(FTPHandler):
                 line = str(line) 
                 cmd = str(cmd)
                 args = str(arg)
-                when = ntplib.NTPClient()
-                while True:
-                    try:
-                        when = when.request('pool.ntp.org')
-                        break
-                    except:
-                        time.sleep(1)
-                when = time.strftime('%Y%m%d%H%M%S', time.localtime(when.tx_time))
-                ip = str(self.__dict__['remote_ip'])
+                when = self.__get_time()
+                ip = str(self.me)
                 with TableManager(container.get_shares_db(), username) as tm:
                     tm.quick_push([when, ip, cmd, line, args])
             except NameError:  # Thrown when deleting a user
@@ -326,6 +370,27 @@ class handler(FTPHandler):
             self.users.disconnect()
             return 'Password Changed'
         
+    def __get_time(self):
+        """
+        Private: Do not call.
+        @return: the time on the server to the microsecond.
+        @format: %Y%m%d%H%M%S%f = yyyymmddhhmmssmmnnmm - hours 24 hour clock
+        """        
+        x = datetime.now()
+        return x.strftime('%Y%m%d%H%M%S%f')
+        
+    def __set_flag(self, *args):
+        """
+        Private: Do not call.
+        A NOOP would also work for this task but no args.
+        @param args: 1 to 2 args to set
+        """
+        args = args[0]
+        if len(args) == 1:
+            self.__update_user_actions(args[0], 'FLAG', args[0])
+        else:
+            self. __update_user_actions(args[0], 'FLAG', args[1])
+        return 'Flag set'      
 
     ###{{{ Begin: Overrides }}}###
     
