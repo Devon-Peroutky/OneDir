@@ -98,6 +98,14 @@ class OneDirFtpClient(FTP):
         to_server = os.path.relpath(to_move, self.root_dir)
         return self.rename(from_server, to_server)
 
+    def move_from(self, path):
+        server_path =  os.path.relpath(path, self.root_dir)
+        return self.sendcmd('RNFR %s' % server_path)
+
+    def move_to(self, path):
+        server_path = os.path.relpath(path, self.root_dir)
+        return self.sendcmd('RNTO %s' % server_path)
+
     def delete_file(self, filename):
         """
         Deletes a file.
