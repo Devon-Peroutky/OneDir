@@ -120,7 +120,9 @@ class OneDirFtpClient(FTP):
         @param folder_name: The path and folder name to delete
         """
         on_server = os.path.relpath(folder_name, self.root_dir)
-        return self.__delete_folder(on_server)
+        x = self.__delete_folder(on_server)
+        self.cwd('/')
+        return x
 
     def gettime(self):
         time = self.sendcmd('site gettime')
@@ -159,6 +161,7 @@ class OneDirFtpClient(FTP):
         Recursive folder deleter, do not call.
         """
         self.cwd(server_path)
+        server_path = server_path.split('/')[-1]
         self.dir(self.__file_folder_callback)
         files = self.__save_file_names()
         folders = self.__save_folder_names()
@@ -167,7 +170,8 @@ class OneDirFtpClient(FTP):
         for f in files:
             self.delete(f)
         self.cwd('..')
-        return self.rmd(server_path)
+        x = self.rmd(server_path)
+        return x
 
     def __file_folder_callback(self, line):
         """

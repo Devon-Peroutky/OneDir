@@ -3,6 +3,9 @@ import pyinotify
 from client import OneDirFtpClient
 from ftplib import error_perm
 
+# Unfixed bug: To reproduce
+# Create a folder. Name that folder. Delete the folder. Make a file with exact same name.
+
 
 class EventHandler(pyinotify.ProcessEvent):
     """
@@ -64,13 +67,15 @@ class EventHandler(pyinotify.ProcessEvent):
         if ListenerContainer.move_to_folder:
             try:
                 ListenerContainer.client.delete_folder(ListenerContainer.move_to_folder)
-            except error_perm:
+            except error_perm as e:
+                print e  # TODO delete
                 pass  # nothing to delete
             ListenerContainer.move_to_folder = None
         if ListenerContainer.move_to_file:
             try:
                 ListenerContainer.client.delete_file(ListenerContainer.move_to_file)
-            except error_perm:
+            except error_perm as e:
+                print e  # TODO delete
                 pass  # nothing to delete
             ListenerContainer.move_to_file = None
         if event.pathname[-1] == '~':  # Temp file
@@ -100,7 +105,6 @@ class ListenerContainer(object):
     @staticmethod
     def rm_watch(path):
         path = os.path.relpath(path, ListenerContainer.root_dir)
-        print ListenerContainer.__watch_dict
         try:
             ListenerContainer.__watch_dict[path]
         except KeyError:
