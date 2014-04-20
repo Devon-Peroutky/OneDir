@@ -36,12 +36,11 @@ Security issues matter to the customer, and specific security related issues may
 ```
 sudo pip install pyftpdlib
 sudo pip install sendfile
-sudo pip install ntplib
+sudo pip install docopt
 ```
 #### Listener:
 ```
 sudo pip install pyinotify
-sudo pip install ntplib
 ```
 #### Other:
 ```
