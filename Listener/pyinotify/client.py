@@ -121,7 +121,12 @@ class OneDirFtpClient(FTP):
         """
         on_server = os.path.relpath(folder_name, self.root_dir)
         return self.__delete_folder(on_server)
-    
+
+    def gettime(self):
+        time = self.sendcmd('site gettime')
+        time = time.split(' ')[-1]
+        return time
+
     def sync(self, timestamp):
         """
         NOTE: You should call get time right after using this. 
@@ -147,8 +152,7 @@ class OneDirFtpClient(FTP):
         @param new_pw: plain text new password.
         @param old_pw: plain text old password. 
         """
-        f.sendcmd('site setpw %s $s' % (new_pw, old_pw))
-        
+        self.sendcmd('site setpw %s %s' % (new_pw, old_pw))
 
     def __delete_folder(self, server_path):
         """ 
@@ -188,7 +192,7 @@ class OneDirFtpClient(FTP):
         To be used after file_folder_callback, do not call.
         """
         folder_name = deepcopy(self.__folder_names)
-        self.__file_names = []
+        self.__folder_names = []
         return folder_name
     
     def __list_callback(self, line):
@@ -233,7 +237,7 @@ class OneDirAdminClient(OneDirFtpClient):
         Download the server log file into the current directory.
         """
         log_loc = self.sendcmd('site getlog')
-        with open(filename, 'wb') as w:
+        with open(log_loc, 'wb') as w:
             return self.retrbinary('retr %s' % log_loc, lambda x: w.write(x))
 
     def get_user_list(self):
@@ -241,7 +245,7 @@ class OneDirAdminClient(OneDirFtpClient):
         @return: A list of user on the server.
         """
         self.retrlines('site userlist', self.__list_callback)
-        ret = self.__save_list_holder(self)
+        ret = self.__save_list_holder()
         for i in range(len(ret)):
             ret[i] = eval(ret[i])
         return ret
