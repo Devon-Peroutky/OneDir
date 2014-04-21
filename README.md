@@ -60,6 +60,7 @@ sudo ln -s /absolute/path/to/OneDir/OneDirServer /usr/local/lib/python2.7/dist-p
 sudo ln -s /absolute/path/to/OneDir/onedir_runner.py /usr/local/lib/python2.7/onedir_runner
 ```
 /absolute/path/to/OneDir should look something like /home/username/OneDir
+
 The runner no longer needs to be run like. 
 ```
 python onedir_runner.py server setup
