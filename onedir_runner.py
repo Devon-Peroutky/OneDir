@@ -412,6 +412,5 @@ if __name__ == '__main__':
 	    client_changePW()
 	else:
 	    print "Unknown arguments"
-        pass  # TODO, this can handle the client too. But I don't know what to write for it yet.
     elif args['admin']:
 	admin()
