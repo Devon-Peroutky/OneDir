@@ -8,6 +8,31 @@ __status__ = 'Testing'
 __date__ = '03/29/14'
 
 
+#  TODO make this work on any port.
+#  TODO add nickname to __init__
+
+
+class OneDirNoAuthClient(object):
+    def __init__(self, host, port):
+        self.ftp = FTP()
+        self.ftp.connect(host, port)
+    
+    def user_sign_up(self, username):
+        """
+        Signs up an new users. 
+        @return:  The password if the sign up was sucessful.
+        @raises KeyErrror: If the username is taken.
+        """
+        rep = self.ftp.sendcmd('site signup %s' % username)
+        rep = rep.split(' ')
+        if rep[1] == 'False':
+            raise KeyError('Username taken')
+        else:
+            return rep[1]
+
+    def disconnect():
+        self.ftp.close() 
+
 class OneDirFtpClient(FTP):
     """
     Adds commands, to FTP, and modifies them so that file/folder names/paths are in
@@ -156,6 +181,30 @@ class OneDirFtpClient(FTP):
         """
         self.sendcmd('site setpw %s %s' % (new_pw, old_pw))
 
+    def set_sync_flag(self, arg, arg_two=None):  # Untested
+        """ 
+        Sets a flag in the information returned by the sync method 
+        """
+        if arg_two:
+            self.sendcmd('site setflag %s %s' % (arg, arg_two)
+        else:
+            self.sendcmd('site setflag %s' % arg)
+
+    def who_am_i(self)  # Untested
+        """
+        @returns: username:nick_name
+        """
+        rep = self.sendcmd('site whoami')
+        rep = rep.split(' ')
+        return rep[1]
+    
+    def i_am(self, nick_name):  # Untested
+        """
+        Sets the nickname of a user and the server. 
+        This probably will be required later. 
+        """
+        self.sendcmd('site iam %s' % nick_name)
+    
     def __delete_folder(self, server_path):
         """ 
         Recursive folder deleter, do not call.

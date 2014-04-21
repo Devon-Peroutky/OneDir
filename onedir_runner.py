@@ -244,7 +244,7 @@ def server_start(is_verbose=False):
     handle.timeout = None
     handle.authorizer = auth
     handle.banner = 'this is the banner'
-    address = ('', 21)
+    address = ('', 21)  #  address = ('', 1024)  does not require root 
     server = FTPServer(address, handle)
     server.max_cons = 256
     server.maxcons_per_ip = 5
@@ -297,7 +297,7 @@ def server_start_testing(is_verbose=False):
     handle.timeout = None
     handle.authorizer = auth
     handle.banner = 'this is the banner'
-    address = ('', 21)
+    address = ('', 21)  # address = ('', 1024)
     server = FTPServer(address, handle)
     server.max_cons = 256
     server.maxcons_per_ip = 5

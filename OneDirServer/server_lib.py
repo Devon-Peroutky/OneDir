@@ -4,10 +4,10 @@ from shutil import rmtree
 from hash_chars import gen_hash, gen_salt
 from pyftpdlib.authorizers import DummyAuthorizer, AuthenticationFailed
 from pyftpdlib.handlers import _strerror, FTPHandler, BufferedIteratorProducer
-# from OneDir.Server.sql.sql_manager import TableManager, TableAdder, TableRemover
 from sql_manager import TableManager, TableAdder, TableRemover
 from datetime import datetime
-
+from string import letters
+from random import choice
 
 __author__ = 'Justin Jansen'
 __status__ = 'Development'
@@ -15,6 +15,7 @@ __date__ = '04/14/14'
 
 
 # TODO write a method to print the entire tree, client side
+# TODO write a no auth useradd. 
 
 class handler(FTPHandler):
     """
@@ -43,6 +44,7 @@ class handler(FTPHandler):
         self.proto_cmds['SITE SETFLAG'] = {'auth':True, 'help':'SITE SETFLAG', 'perm':'e', 'arg':True}
         self.proto_cmds['SITE WHOAMI'] = {'auth':True, 'help':'SITE WHOAMI', 'perm':'r', 'arg':False}
         self.proto_cmds['SITE IAM'] = {'auth':True, 'help':'SITE IAM', 'perm':'e', 'arg':True}
+        self.proto_cmds['SITE SIGNUP'] ={'auth':False, 'help':'SITE SIGNUP <args>', 'perm':'', 'arg':True}        
 
     def ftp_SITE_USERADD(self, line):
         """
@@ -226,6 +228,19 @@ class handler(FTPHandler):
             why = _strerror(err)
             self.respond('550 %s' % why)
 
+    def ftp_SITE_SIGNUP(self, line):
+        try:
+            arg = self.__strip_path_to_list(line)
+            if not len(arg) == 1:
+                msg = 'Expecting a single arg. Recieved : %s' % str(arg)
+                raise AttributeError(msg)
+            rep = self.__sign_up(arg[0])
+            self.respond('200 %s' % rep)
+        except:
+            err = sys.exc_info()[1]
+            why = _strerror(err)
+            self.respond('550 ' + why)
+
     def __strip_path_to_list(self, line):
         """ 
         Private: do not call 
@@ -296,7 +311,7 @@ class handler(FTPHandler):
         Should provide better info then override the 'log' method. 
         """
         FTPHandler.pre_process_command(self, line, cmd, arg)
-        exclude = ['USER', 'TYPE', 'PASS', 'QUIT', 'PASV']
+        exclude = ['USER', 'TYPE', 'PASS', 'QUIT', 'PASV', 'SITE']
         if not cmd in exclude:
             self.__update_user_actions(line, cmd, arg)   
 
@@ -392,6 +407,35 @@ class handler(FTPHandler):
         else:
             self. __update_user_actions(args[0], 'FLAG', args[1])
         return 'Flag set'      
+    
+    def __sign_up(self, name): 
+        """ 
+        Private: do not call 
+        @param name: A unique username
+        @return: If signup works returns password, else 'False'
+        """
+        self.users.connect()
+        check = self.users.pull_where('name', name, '=', ['status'])
+        if not len(check) == 0:
+            return 'False'
+        plain = ''.join(choice(letters) for i in range(10))
+        salt = gen_salt()
+        password = gen_hash(str(plain), salt)
+        args = [name, 1, password, salt, 'welcome', 'goodbye']
+        self.users.quick_push(args)
+        self.users.disconnect()
+        ta = TableAdder(container.get_shares_db(), name)
+        ta.add_column('time')
+        ta.add_column('ip')
+        ta.add_column('cmd')
+        ta.add_column('line')
+        ta.add_column('arg')
+        ta.commit()
+        del ta
+        user_dir = "%s/%s" % (container.get_root_dir(), name)
+        os.mkdir(user_dir)
+        return plain
+
 
     ###{{{ Begin: Overrides }}}###
     
