@@ -57,7 +57,7 @@ The new setup is:
 ```
 sudo ln -s /absolute/path/to/OneDir/OneDirListener /usr/local/lib/python2.7/dist-packages/OneDirListener
 sudo ln -s /absolute/path/to/OneDir/OneDirServer /usr/local/lib/python2.7/dist-packages/OneDirServer
-sudo ln -s /absolute/path/to/OneDir/onedir_runner.py /usr/local/lib/python2.7/onedir_runner
+sudo ln -s /absolute/path/to/OneDir/onedir_runner.py /usr/local/bin/onedir_runner
 ```
 /absolute/path/to/OneDir should look something like /home/username/OneDir
 
