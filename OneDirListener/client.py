@@ -30,7 +30,7 @@ class OneDirNoAuthClient(object):
         else:
             return rep[1]
 
-    def disconnect():
+    def disconnect(self):
         self.ftp.close() 
 
 class OneDirFtpClient(FTP):
@@ -186,11 +186,11 @@ class OneDirFtpClient(FTP):
         Sets a flag in the information returned by the sync method 
         """
         if arg_two:
-            self.sendcmd('site setflag %s %s' % (arg, arg_two)
+            self.sendcmd('site setflag %s %s' % (arg, arg_two))
         else:
             self.sendcmd('site setflag %s' % arg)
 
-    def who_am_i(self)  # Untested
+    def who_am_i(self): # Untested
         """
         @returns: username:nick_name
         """
