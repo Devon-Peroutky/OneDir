@@ -7,7 +7,8 @@ Usage:
     onedir_runner.py server start [-v | --verbose] [-t | --testing]
     onedir_runner.py server setup [(--root=<path> --user=<db> --password=<pw>)]
     onedir_runner.py server useradd <username> <password> [(-a | --admin)]
-    onedir_runner.py client
+    onedir_runner.py client signup
+    onedir_runner.py client changePW
     onedir_runner.py admin
 
 Options:
@@ -329,6 +330,66 @@ def admin():
 	    print "Not a valid command, or it was not able to execute properly."
 	input=raw_input('')
 
+def client_signup():
+    """
+    Prompts a new user through the creation of a non-admin account.
+    """
+    client = OneDirAdminClient(socket.gethostbyname(socket.gethostname()), "admin", "admin", os.getcwd())
+    username = raw_input("Welcome new user! Enter in your desired username:")
+    check = check_user_available(client, username)
+    while not check:
+        username = raw_input("Sorry, that username is taken. Please enter another username.")
+        check = check_user_available(username)
+    pw = raw_input("Username available! Please enter in a desired password:")
+    pw_check = raw_input("Please re-enter your password:")
+    while not pw == pw_check:
+        pw = raw_input("Passwords do not match. Please enter a desired password:")
+        pw_check = raw_input("Please re-enter your password:")
+    client.user_add(username, pw, False)
+
+def check_user_available(c, username):
+    """
+    Helper method to check that a desired username is not already taken.
+    """
+    users = c.get_user_list()
+    if username not in users:
+        return True
+    else:
+        return False
+
+def client_changePW():
+    """
+    Prompts a current user through changing their password
+    """
+    client = OneDirAdminClient(socket.gethostbyname(socket.gethostname()), "admin", "admin", os.getcwd())
+    username = raw_input("Please enter in your username:") #can be removed if there's a get_current_user() method somewhere I didn't see
+    check = check_valid(client, username)
+    while not check:
+        username = raw_input("Entered username not valid. Please enter a valid username:")
+    current_pw = "dummy" #need to access database to get user's current pw
+    verify_pw = raw_input("Please enter in your current password:")
+    while not current_pw == verify_pw:
+        verify_pw = raw_input("Incorrect password entry. Please enter current valid password:")
+    new_pw = raw_input("Enter in your desired new password:")
+    verify_new_pw = raw_input("Re-enter your desired new password:")
+    while not new_pw == verify_new_pw:
+        print("The new passwords you entered do not match. Please enter in the same password twice to change it.")
+        new_pw = raw_input("Enter in your desired new password:")
+        verify_new_pw = raw_input("Re-enter your desired new password:")
+    client.change_user_password(username, new_pw)
+
+def check_valid(c, username):
+    """
+    Helper method to check that the entered username is a valid username.
+    """
+    users = c.get_user_list()
+    if username in users:
+        return True
+    else:
+        return False
+
+
+
 if __name__ == '__main__':
     args = docopt(__doc__)
     if args['server']:
@@ -345,6 +406,12 @@ if __name__ == '__main__':
         elif args['useradd']:
             server_user_add(args['username'], args['password'], args['--admin'])
     elif args['client']:
+	if args['signup']:
+	    client_signup()
+	elif args['changePW']:
+	    client_changePW()
+	else:
+	    print "Unknown arguments"
         pass  # TODO, this can handle the client too. But I don't know what to write for it yet.
     elif args['admin']:
 	admin()
