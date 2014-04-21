@@ -30,7 +30,8 @@ __author__ = 'Justin'
 
 import os
 from shutil import rmtree
-from OneDir.Listener.pyinotify.client import OneDirFtpClient
+# from OneDir.Listener.pyinotify.client import OneDirFtpClient
+from client import OneDirFtpClient  
 
 o = OneDirFtpClient('10.0.0.5', 'admin', 'admin', os.getcwd())
 

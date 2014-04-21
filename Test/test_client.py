@@ -1,9 +1,11 @@
 import os
 from shutil import copyfile, rmtree
 from ftplib import FTP
-from extra.testhelper.helpers import n_eq, n_ok
+#from extra.testhelper.helpers import n_eq, n_ok
+from helpers import n_eq, n_ok
 from nose.tools import timed
-from client import OneDirFtpClient
+#from client import OneDirFtpClient
+from OneDirListener.client import OneDirClient
 
 __author__ = 'Justin Jansen'
 __status__ = 'Testing'

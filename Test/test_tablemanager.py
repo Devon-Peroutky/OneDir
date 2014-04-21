@@ -1,7 +1,9 @@
 import os
 from nose.tools import with_setup, raises
-from extra.testhelper.helpers import n_eq, n_ok
-from sql_manager import SqlManager, TableAdder, TableManager
+# from extra.testhelper.helpers import n_eq, n_ok
+# from sql_manager import SqlManager, TableAdder, TableManager
+from helpers import n_eq, n_ok
+from OneDirServer.sql_manager import SqlManager, TableAdder, TableManager
 from mock import patch
 
 __author__ = 'Justin Jansen'

@@ -2,10 +2,10 @@
 
 """
 Usage:
-    runner.py server start [-v | --verbose] [-t | --testing]
-    runner.py server setup [(--root=<path> --user=<db> --password=<pw>)]
-    runner.py server useradd <username> <password> [(-a | --admin)]
-    runner.py client
+    onedir_runner.py server start [-v | --verbose] [-t | --testing]
+    onedir_runner.py server setup [(--root=<path> --user=<db> --password=<pw>)]
+    onedir_runner.py server useradd <username> <password> [(-a | --admin)]
+    onedir_runner.py client
 
 Options:
     -h --help
@@ -25,9 +25,12 @@ from docopt import docopt
 from getpass import getpass
 from shutil import rmtree
 from pyftpdlib.servers import FTPServer
-from OneDir.Server.sql.sql_manager import TableAdder, TableManager
-from OneDir.Server.ftpserver.hash_chars import gen_hash, gen_salt
-from OneDir.Server.ftpserver.onedir_lib import authorizer, handler, container
+# from OneDir.Server.sql.sql_manager import TableAdder, TableManager
+# from OneDir.Server.ftpserver.hash_chars import gen_hash, gen_salt
+# from OneDir.Server.ftpserver.onedir_lib import authorizer, handler, container
+from OneDirServer.sql_manager import TableAdder, TableManager
+from OneDirServer.hash_chars import gen_hash, gen_salt
+from OneDirServer.server_lib import authorizer, handler, container
 
 __author__ = 'Justin'
 

@@ -4,7 +4,8 @@ from shutil import rmtree
 from hash_chars import gen_hash, gen_salt
 from pyftpdlib.authorizers import DummyAuthorizer, AuthenticationFailed
 from pyftpdlib.handlers import _strerror, FTPHandler, BufferedIteratorProducer
-from OneDir.Server.sql.sql_manager import TableManager, TableAdder, TableRemover
+# from OneDir.Server.sql.sql_manager import TableManager, TableAdder, TableRemover
+from sql_manager import TableManager, TableAdder, TableRemover
 from datetime import datetime
 
 

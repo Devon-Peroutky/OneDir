@@ -1,7 +1,9 @@
 import os
 from nose.tools import raises
-from sql_manager import SqlManager, TableAdder
-from extra.testhelper.helpers import n_eq, n_ok
+# from sql_manager import SqlManager, TableAdder
+# from extra.testhelper.helpers import n_eq, n_ok
+from OneDirServer.sql_manager import SqlManager, TableAdder
+from helpers import n_eq, n_ok
 
 __author__ = 'Justin Jansen'
 __status__ = 'Testing'

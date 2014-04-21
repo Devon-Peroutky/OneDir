@@ -2,7 +2,7 @@ __author__ = 'Devon'
 import sys
 import os
 import pyinotify
-sys.path.insert(0, '../../Server/ftpserver/')
+# sys.path.insert(0, '../../Server/ftpserver/')
 from client import OneDirFtpClient
 import datetime
 import logging

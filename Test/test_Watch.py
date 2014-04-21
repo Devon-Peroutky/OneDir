@@ -2,8 +2,9 @@ __author__ = 'Devon'
 import sys
 import os
 import pyinotify
-sys.path.insert(0, '../../Server/ftpserver/')
-from client import OneDirFptClient
+#sys.path.insert(0, '../../Server/ftpserver/')
+#from client import OneDirFptClient
+from OneDirListener.client import OneDirFptClient
 
 
 class ModHandler(pyinotify.ProcessEvent):

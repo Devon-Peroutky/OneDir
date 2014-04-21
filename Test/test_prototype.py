@@ -10,7 +10,8 @@ import prototype
 #sys.path.insert(0, '../../Server/sql/')
 #from OneDir.sql_manager import TableAdder, TableManager
 #sys.path.insert(0, '../../Server/ftpserver')
-from OneDir.Server.ftpserver.testing_server import main, setup_users
+#from OneDir.Server.ftpserver.testing_server import main, setup_users
+from testing_server import main, setup_users
 import time
 
 class SetupError(Exception):

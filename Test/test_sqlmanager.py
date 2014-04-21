@@ -1,7 +1,9 @@
 import os
 import sqlite3 as lite
-from sql_manager import SqlManager
-from extra.testhelper.helpers import n_eq, n_ok
+#from sql_manager import SqlManager
+#from extra.testhelper.helpers import n_eq, n_ok
+from OneDirServer.sql_manager import SqlManager
+from helpers import n_eq, n_ok
 
 __author__ = 'Justin Jansen'
 __status__ = 'Testing'

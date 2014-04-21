@@ -2,7 +2,8 @@
 
 from ftplib import FTP
 from nose import with_setup
-from OneDir.extra.testhelper.helpers import n_eq, n_ok
+# from OneDir.extra.testhelper.helpers import n_eq, n_ok
+from helpers import n_eq, n_ok
 from datetime import datetime
 
 ip = '10.0.0.5'

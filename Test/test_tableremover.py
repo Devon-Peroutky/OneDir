@@ -1,7 +1,10 @@
 import os
 from nose.tools import raises
-from extra.testhelper.helpers import n_ok
-from sql_manager import SqlManager, TableAdder, TableRemover
+# from extra.testhelper.helpers import n_ok
+# from sql_manager import SqlManager, TableAdder, TableRemover
+from helpers import n_ok
+from OneDirServer.sql_manager import SqlManager, TableAdder, TableRemover
+
 
 __author__ = 'Justin Jansen'
 __status__ = 'Testing'

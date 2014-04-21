@@ -3,8 +3,8 @@ from ftplib import FTP
 import hashlib
 import os
 from nose import with_setup
-from extra.testhelper.helpers import n_eq, n_ok
-
+# from extra.testhelper.helpers import n_eq, n_ok
+from helpers import n_eq, n_ok
 
 __author__ = 'Justin Jansen'
 __status__ = 'Testing'
