@@ -8,6 +8,7 @@ Usage:
     onedir_runner.py server setup [(--root=<path> --user=<db> --password=<pw>)]
     onedir_runner.py server useradd <username> <password> [(-a | --admin)]
     onedir_runner.py client
+    onedir_runner.py admin
 
 Options:
     -h --help
@@ -28,14 +29,16 @@ from getpass import getpass
 from shutil import rmtree
 from pyftpdlib.servers import FTPServer
 # from OneDir.Server.sql.sql_manager import TableAdder, TableManager
-# from OneDir.Server.ftpserver.hash_chars import gen_hash, gen_salt
+# from OneDir.Server.ftpserver.hash_chars import gen_hash,ls gen_salt
 # from OneDir.Server.ftpserver.onedir_lib import authorizer, handler, container
 from OneDirServer.sql_manager import TableAdder, TableManager
 from OneDirServer.hash_chars import gen_hash, gen_salt
 from OneDirServer.server_lib import authorizer, handler, container
+from OneDirListener.client import OneDirAdminClient
+from OneDirListener.client import OneDirFtpClient
+import socket
 
 __author__ = 'Justin'
-
 
 class GuidedSetup(object):
     def __init__(self):
@@ -204,7 +207,6 @@ def quick_setup(root_dir, admin, password):
     print 'Setup completed successfully. Exiting.'
     sys.exit(0)
 
-
 def server_user_add(username, password, is_admin=False):
     if not os.path.isfile('conf.json'):
         print 'Conf file not found, please run setup.'
@@ -305,6 +307,27 @@ def server_start_testing(is_verbose=False):
         logging.basicConfig(filename=container.get_log_file(), level=logging.INFO)
     server.serve_forever()
 
+def admin():
+    while True:
+        username = raw_input("Username: ")
+        pw = raw_input("Password: ")
+        try:
+     	    admin = OneDirAdminClient(socket.gethostbyname(socket.gethostname()), username, pw, os.getcwd())
+	    break
+        except:
+	    print "Invalid Login Credentials"
+	    continue
+
+    input=raw_input("Simply type any admin commands you want to be executed. Type Exit() to quit and logout\n")
+
+    while input != "Exit()":
+        command = "admin."+input
+	try:
+	    output = eval(command)
+	    print output
+	except:
+	    print "Not a valid command, or it was not able to execute properly."
+	input=raw_input('')
 
 if __name__ == '__main__':
     args = docopt(__doc__)
@@ -321,5 +344,7 @@ if __name__ == '__main__':
                 GuidedSetup()
         elif args['useradd']:
             server_user_add(args['username'], args['password'], args['--admin'])
-    if args['client']:
+    elif args['client']:
         pass  # TODO, this can handle the client too. But I don't know what to write for it yet.
+    elif args['admin']:
+	admin()
