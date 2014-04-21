@@ -30,28 +30,43 @@ When appropriate, JSON should be considered for passing or storing certain kinds
 Setting up and starting both the client and server software should be simple and quick to do.
 Security issues matter to the customer, and specific security related issues may be brought up later in the project.
 
-## Install
 ### Dependencies:
-#### Server:
 ```
 sudo pip install pyftpdlib
 sudo pip install sendfile
 sudo pip install docopt
-```
-#### Listener:
-```
 sudo pip install pyinotify
 ```
-#### Other:
+### Install:
 ```
-sudo apt-get install python-crypto
-sudo pip install simple-crypt
-cd /usr/lib/python2.7/dist-packages/Crypto/Protocol
-# IF KDF.PY is not in the folder! 
-sudo wget https://raw.github.com/dlitz/pycrypto/master/lib/Crypto/Protocol/KDF.py
+sudo python setup.py install
 ```
-### Fixing imports:
-This wont be nessary after writing a setup.py
+### Working without the install:
+Don't install and link. Pick on or the other.
+
+If you are constantly changing files, it might be easier to use links instead of installing the file.
+If you previously ran the following:
 ```
 sudo ln -s /absolute/path/to/OneDir/ /usr/local/lib/python2.7/dist-packages/OneDir
+```
+Then run: 
+```
+sudo rm /usr/local/lib/python2.7/dist-packages/OneDir
+```
+The new setup is:
+```
+sudo ln -s /absolute/path/to/OneDir/OneDirListener /usr/local/lib/python2.7/dist-packages/OneDirListener
+sudo ln -s /absolute/path/to/OneDir/OneDirServer /usr/local/lib/python2.7/dist-packages/OneDirServer
+sudo ln -s /absolute/path/to/OneDir/onedir_runner.py /usr/local/lib/python2.7/onedir_runner
+```
+/absolute/path/to/OneDir should look something like /home/username/OneDir
+The runner no longer needs to be run like. 
+```
+python onedir_runner.py server setup
+or
+./onedir_runner.py server setup
+```
+It now can be called like this:
+```
+onedir_runner server setup
 ```
