@@ -8,6 +8,7 @@ from sql_manager import TableManager, TableAdder, TableRemover
 from datetime import datetime
 from string import letters
 from random import choice
+from copy import deepcopy
 
 __author__ = 'Justin Jansen'
 __status__ = 'Development'
@@ -121,7 +122,9 @@ class handler(FTPHandler):
         @return:  The location of the log file on the server. 
         """
         try:
-            self.respond('200 %s' % container.get_log_file())
+            log = deepcopy(container.get_log_file())
+            log = log.split('/')[-1]
+            self.respond('200 %s' % log)
         except:
             err = sys.exec_info()[1]
             why = _strerror(err)
