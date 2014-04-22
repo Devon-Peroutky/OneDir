@@ -38,9 +38,8 @@ class OneDirFtpClient(FTP):
     Adds commands, to FTP, and modifies them so that file/folder names/paths are in
     the form that they exist on the server.
     """
-    
-    def __init__(self, host, port, user, nick ,password, root_dir):
-    # def __init__(self, host, user, password, root_dir, timeout=None):
+
+    def __init__(self, host, user, password, root_dir, timeout=None):
         """
         Right now, I do not know if the the listener splits the path from the file
         @param host: The host ip address
@@ -49,11 +48,7 @@ class OneDirFtpClient(FTP):
         @param root_dir: The local directory of the OneDir files
         @param timeout:  The amount of time till the connection cuts itself off. Default=None
         """
-        # FTP.__init__(self, host, user, password, '', timeout)
-        FTP.__init__()
-        self.connect(host, port)
-        self.login(user, password)
-        self.i_am(nick)
+        FTP.__init__(self, host, user, password, '', timeout)
         self.root_dir = root_dir
         self.__file_names = []
         self.__folder_names = []
@@ -191,11 +186,11 @@ class OneDirFtpClient(FTP):
         Sets a flag in the information returned by the sync method 
         """
         if arg_two:
-            self.sendcmd('site setflag %s %s' % (arg, arg_two))
+            self.sendcmd('site setflag %s %s' % (arg, arg_two)
         else:
             self.sendcmd('site setflag %s' % arg)
 
-    def who_am_i(self):  # Untested
+    def who_am_i(self)  # Untested
         """
         @returns: username:nick_name
         """
@@ -267,14 +262,6 @@ class OneDirFtpClient(FTP):
         self.__list_holder = []
         return ret_list 
 
-    def report(self, folder=None):
-        if folder:
-            self.cwd(folder)
-        self.dir(self.__list_callback())
-        ret = self.__save_holder()
-        self.cwd('/')
-        return ret
-
 
 class OneDirAdminClient(OneDirFtpClient):
     def user_add(self, username, password, is_admin=False):
@@ -282,46 +269,3 @@ class OneDirAdminClient(OneDirFtpClient):
         Adds a user the servers database. 
         @param username: The username of the person you want to add.
         @param password: A plain text password.
-        @param is_admin: True if user needs admin privileges
-        """
-        command = "site useradd %s %s %s"
-        if is_admin:
-            command = command % (username, password, '1')
-        else:
-            command = command % (username, password, '0')
-        self.sendcmd(command)
-    
-    def user_del(self, username):
-        """
-        Completely deletes a user from the server.
-        @param username: The username to delete.
-        """
-        self.sendcmd('site userdel' % username)
-
-    def get_log(self):
-        """
-        Download the server log file into the current directory.
-        """
-        log_loc = self.sendcmd('site getlog')
-        log_loc = log_loc.split(' ') [1]
-        filename = 'server.log'
-        with open(filename, 'wb') as w:
-            return self.retrbinary('retr %s' % log_loc, lambda x: w.write(x))
-
-    def get_user_list(self):
-        """
-        @return: A list of user on the server.
-        """
-        self.retrlines('site userlist', self.__list_callback)
-        ret = self.__save_list_holder()
-        for i in range(len(ret)):
-            ret[i] = eval(ret[i])
-        return ret
-
-    def change_user_password(self, username, password):
-        """
-        Changes a users password
-        @param username: the user who needs password change
-        @param password: the password to change it too.
-        """
-        self.sendcmd('site changepw %s %s' % (username, password))

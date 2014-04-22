@@ -5,9 +5,6 @@ __author__ = 'rupali'
 # note to self: never delete the admin
 from client import *
 
-# def __init__(self):
-#     #self.o = OneDirFtpClient(socket.gethostbyname(socket.gethostname()), "admin", "admin", os.getcwd())
-#     self.client = OneDirAdminClient(socket.gethostbyname(socket.gethostname()), "admin", "admin", os.getcwd())
 
 def main(self):
     """
@@ -25,6 +22,7 @@ def main(self):
         pw = raw_input("Passwords do not match. Please enter a desired password:")
         pw_check = raw_input("Please re-enter your password:")
     self.client.user_add(username, pw, False)
+
 
 def check_user_available(self, username):
     """
