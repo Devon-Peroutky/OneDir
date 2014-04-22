@@ -30,7 +30,7 @@ class OneDirNoAuthClient(object):
         else:
             return rep[1]
 
-    def disconnect():
+    def disconnect(self):
         self.ftp.close() 
 
 class OneDirFtpClient(FTP):
