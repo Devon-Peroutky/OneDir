@@ -5,7 +5,8 @@ __author__ = 'rupali'
 # note to self: never delete the admin
 from client import *
 from getpass import getpass
-
+import json
+from uuid import getnode as get_mac
 
 def main(ip, port): #connect with client.py after Justin pushes; use OneDirAdminClient to create new user with temp pw, then proceed to change pw
     #OneDirNoAuthClient - coming soon! (requires IP and port number); request username. If accepted, temp pw will be issued. If username is not accepted, error thrown.
@@ -27,7 +28,16 @@ def main(ip, port): #connect with client.py after Justin pushes; use OneDirAdmin
     while not pw == pw_check:
         pw = getpass("Passwords do not match. Please enter a desired password:")
         pw_check = getpass("Please re-enter your password:")
-    client.change_user_password(username, pw)
+    root_dir = raw_input("Please type in the file path for the directory where you would like to watch for changes:")
+    while not os.path.exists(root_dir):
+        root_dir = raw_input("Invalid file path entered. Enter a valid path to a directory where you would like to watch for changes:")
+    #json needs: username, root_dir, nick, is_syncing: True, password
+    nickname = get_mac()
+    data = {"username": username, "root_dir": root_dir, "nick": nickname, "is_syncing": True, "password": pw}
+    with open('client.json', 'w') as file:
+        json.dump(data, file)
+    ftpclient = OneDirFtpClient(ip, port, username, nickname, password, root_dir)
+    ftpclient.set_password(pw, password)
 
 
 # def check_user_available(self, username):

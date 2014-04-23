@@ -30,16 +30,17 @@ class OneDirNoAuthClient(object):
         else:
             return rep[1]
 
-    def change_user_password(self, username, password):
-        """
-        Changes a users password
-        @param username: the user who needs password change
-        @param password: the password to change it too.
-        """
-        self.ftp.sendcmd('site changepw %s %s' % (username, password))
+    # def change_user_password(self, username, password):
+    #     """
+    #     Changes a users password
+    #     @param username: the user who needs password change
+    #     @param password: the password to change it too.
+    #     """
+    #     self.ftp.sendcmd('site changepw %s %s' % (username, password))
 
     def disconnect(self):
         self.ftp.close() 
+
 
 class OneDirFtpClient(FTP):
     """
