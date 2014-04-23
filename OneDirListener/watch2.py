@@ -7,9 +7,6 @@ import os
 import json
 import time
 
-# Unfixed bug: To reproduce
-# Create a folder. Name that folder. Delete the folder. Make a file with exact same name.
-
 
 class EventHandler(pyinotify.ProcessEvent):
     """
