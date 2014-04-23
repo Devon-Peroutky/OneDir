@@ -8,10 +8,6 @@ __status__ = 'Testing'
 __date__ = '03/29/14'
 
 
-#  TODO make this work on any port.
-#  TODO add nickname to __init__
-
-
 class OneDirNoAuthClient(object):
     def __init__(self, host, port):
         self.ftp = FTP()
