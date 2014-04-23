@@ -7,29 +7,32 @@ from client import OneDirFtpClient
 import datetime
 import logging
 import socket
+import json
 from apscheduler.scheduler import Scheduler
 from ftplib import error_perm
 
 class EventHandler(pyinotify.ProcessEvent):
     def create(self, theFile):
-        try:
-           if self.isDir:
-                ListenerContainer.add_watch(theFile)
-                ListenerContainer.client.mkdir(theFile)
-           else:
-                ListenerContainer.client.upload(theFile)
-        except:
-            print "----------- Problem adding the watcher and/or creating the file -----------"
+        if ListenerContainer.is_syncing:
+            try:
+               if self.isDir:
+                    ListenerContainer.add_watch(theFile)
+                    ListenerContainer.client.mkdir(theFile)
+               else:
+                    ListenerContainer.client.upload(theFile)
+            except error:
+                print error
 
     def delete(self, theFile):
-        try:
-            if self.isDir:
-                ListenerContainer.rm_watch(theFile)
-                ListenerContainer.client.delete_folder(theFile)
-            else:
-                ListenerContainer.client.delete_file(theFile)
-        except:
-            print "----------- Problem removing watcher and/or deleting the file -----------"
+        if ListenerContainer.is_syncing:
+            try:
+                if self.isDir:
+                    ListenerContainer.rm_watch(theFile)
+                    ListenerContainer.client.delete_folder(theFile)
+                else:
+                    ListenerContainer.client.delete_file(theFile)
+            except error:
+                print error
 
     def renameModification(self, fromFile, toFile):
 	self.delete(fromFile)
@@ -136,19 +139,29 @@ class ListenerContainer(object):
     client = None
     __watch_dict = {}
     root_dir = None
+    is_syncing = True
+    config = None
 
     def __init__(self):
         raise Exception('Static class. No __init__')
 
     @staticmethod
     def add_watch(path):
-        path = os.path.relpath(path, ListenerContainer.root_dir)
+        #if not path == ListenerContainer.root_dir:
+        #    path = os.path.relpath(path, ListenerContainer.root_dir)
+        #    print 2, path
         temp = ListenerContainer.watch_manager.add_watch(path, ListenerContainer.mask, rec=True)
         ListenerContainer.__watch_dict.update(temp)
-
+                
+    @staticmethod
+    def add_config(path):
+        temp = ListenerContainer.watch_manager.add_watch(path, pyinotify.IN_MODIFY, rec=False)
+        ListenerContainer.__watch_dict.update(temp)
+        ListenerContainer.config = path
+ 
     @staticmethod
     def rm_watch(path):
-        path = os.path.relpath(path, ListenerContainer.root_dir)
+        #path = os.path.relpath(path, ListenerContainer.root_dir)
         try:
             ListenerContainer.__watch_dict[path]
         except KeyError:
@@ -156,13 +169,24 @@ class ListenerContainer(object):
         ListenerContainer.watch_manager.rm_watch(ListenerContainer.__watch_dict[path], rec=True)
         del ListenerContainer.__watch_dict[path]
 
-def main(ip, port, username, nickname, password, root_dir):
-    directory="."
+#def main(ip, port, username, nickname, password, root_dir):
+def main(ip, port):
 
-    ListenerContainer.root_dir = root_dir
-    ListenerContainer.client = OneDirFtpClient(ip, port, username, nickname, password, ListenerContainer.root_dir)
+    conffile = os.path.split(__file__)[0]
+    conffile = os.path.join(conffile, 'client.json')
+    conffile = os.path.abspath(conffile)
+    jd = open(conffile)
+    conf = json.load(jd)
+    jd.close()
+    ListenerContainer.client = OneDirFtpClient(ip, port, conf['username'], conf['nick'], conf['password'], conf['root_dir'])
+    ListenerContainer.is_syncing = conf['is_syncing']
+    ListenerContainer.root_dir = conf['root_dir']
+    #ListenerContainer.root_dir = os.getcwd() 
     notifier = pyinotify.Notifier(ListenerContainer.watch_manager, EventHandler())
-    ListenerContainer.add_watch(directory)
+    ListenerContainer.add_watch(conf['root_dir'])
+    #ListenerContainer.add_watch('.')
+    ListenerContainer.add_config(conffile)
+
 
     while True:
 	try:
@@ -175,4 +199,5 @@ def main(ip, port, username, nickname, password, root_dir):
 
 if __name__ == '__main__':
     print 'DONT FOR GET TO SET THE IP!'
-    main('127.0.0.1', '21', 'admin', 'TheBigCheese','admin', os.getcwd())
+    #main('127.0.0.1', '21', 'admin', 'TheBigCheese','admin', os.getcwd())
+    main('127.0.0.1', 21)

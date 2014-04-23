@@ -156,7 +156,6 @@ class ListenerContainer(object):
         ListenerContainer.watch_manager.rm_watch(ListenerContainer.__watch_dict[path], rec=True)
         del ListenerContainer.__watch_dict[path]
         
-
 #def main(ip, port, user, nick ,password, root_dir):
 def main(ip, port):
     """
