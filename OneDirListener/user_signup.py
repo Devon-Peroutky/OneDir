@@ -34,11 +34,11 @@ def main(ip, port): #connect with client.py after Justin pushes; use OneDirAdmin
     #json needs: username, root_dir, nick, is_syncing: True, password
     nickname = get_mac()
     data = {"username": username, "root_dir": root_dir, "nick": nickname, "is_syncing": True, "password": pw}
-    with open('client.json', 'w') as file:
+    path = os.path.expanduser('~') + '/.onedirlistener/client.json'
+    with open(path, 'w') as file:
         json.dump(data, file)
     ftpclient = OneDirFtpClient(ip, port, username, nickname, password, root_dir)
     ftpclient.set_password(pw, password)
-
 
 # def check_user_available(self, username):
 #     """
