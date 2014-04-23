@@ -38,8 +38,9 @@ class OneDirFtpClient(FTP):
     Adds commands, to FTP, and modifies them so that file/folder names/paths are in
     the form that they exist on the server.
     """
-
-    def __init__(self, host, user, password, root_dir, timeout=None):
+    
+    def __init__(self, host, port, user, nick ,password, root_dir):
+    # def __init__(self, host, user, password, root_dir, timeout=None):
         """
         Right now, I do not know if the the listener splits the path from the file
         @param host: The host ip address
@@ -48,7 +49,11 @@ class OneDirFtpClient(FTP):
         @param root_dir: The local directory of the OneDir files
         @param timeout:  The amount of time till the connection cuts itself off. Default=None
         """
-        FTP.__init__(self, host, user, password, '', timeout)
+        # FTP.__init__(self, host, user, password, '', timeout)
+        FTP.__init__()
+        self.connect(host, port)
+        self.login(user, password)
+        self.i_am(nick)
         self.root_dir = root_dir
         self.__file_names = []
         self.__folder_names = []
@@ -190,7 +195,7 @@ class OneDirFtpClient(FTP):
         else:
             self.sendcmd('site setflag %s' % arg)
 
-    def who_am_i(self): # Untested
+    def who_am_i(self):  # Untested
         """
         @returns: username:nick_name
         """
@@ -262,6 +267,14 @@ class OneDirFtpClient(FTP):
         self.__list_holder = []
         return ret_list 
 
+    def report(self, folder=None):
+        if folder:
+            self.cwd(folder)
+        self.dir(self.__list_callback())
+        ret = self.__save_holder()
+        self.cwd('/')
+        return ret
+
 
 class OneDirAdminClient(OneDirFtpClient):
     def user_add(self, username, password, is_admin=False):
@@ -290,7 +303,9 @@ class OneDirAdminClient(OneDirFtpClient):
         Download the server log file into the current directory.
         """
         log_loc = self.sendcmd('site getlog')
-        with open(log_loc, 'wb') as w:
+        log_loc = log_loc.split(' ') [1]
+        filename = 'server.log'
+        with open(filename, 'wb') as w:
             return self.retrbinary('retr %s' % log_loc, lambda x: w.write(x))
 
     def get_user_list(self):
@@ -310,5 +325,3 @@ class OneDirAdminClient(OneDirFtpClient):
         @param password: the password to change it too.
         """
         self.sendcmd('site changepw %s %s' % (username, password))
-        
-    
