@@ -15,9 +15,6 @@ __status__ = 'Development'
 __date__ = '04/14/14'
 
 
-# TODO write a method to print the entire tree, client side
-# TODO write a no auth useradd. 
-
 class handler(FTPHandler):
     """
     This handles all the commands called to server, and user logins.
