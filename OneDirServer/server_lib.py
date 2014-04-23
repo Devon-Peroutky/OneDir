@@ -424,7 +424,7 @@ class handler(FTPHandler):
         plain = ''.join(choice(letters) for i in range(10))
         salt = gen_salt()
         password = gen_hash(str(plain), salt)
-        args = [name, 1, password, salt, 'welcome', 'goodbye']
+        args = [name, 0, password, salt, 'welcome', 'goodbye']
         self.users.quick_push(args)
         self.users.disconnect()
         ta = TableAdder(container.get_shares_db(), name)
