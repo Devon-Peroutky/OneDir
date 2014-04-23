@@ -118,7 +118,7 @@ def main(ip, user, password, root_dir):
     Since pyintofiy says not override its init i made a static class for event handler to use.
     """
     ListenerContainer.root_dir = root_dir
-    ListenerContainer.client = OneDirFtpClient(ip, user, password, ListenerContainer.root_dir)
+    ListenerContainer.client = OneDirFtpClient(ip, '21', user, 'BigCheese', password, ListenerContainer.root_dir)
     notifier = pyinotify.Notifier(ListenerContainer.watch_manager, EventHandler())
     ListenerContainer.add_watch('.')
     while True:
@@ -143,4 +143,4 @@ def main(ip, user, password, root_dir):
 
 if __name__ == '__main__':
     print 'DONT FOR GET TO SET IP... this is mine!'
-    main('10.0.0.5', 'admin', 'admin', os.getcwd())
+    main('127.0.0.1', 'admin', 'admin', os.getcwd())
