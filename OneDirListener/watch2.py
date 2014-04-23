@@ -2,6 +2,10 @@ import os
 import pyinotify
 from client import OneDirFtpClient
 from ftplib import error_perm
+from threading import Timer
+import os
+import json
+import time
 
 # Unfixed bug: To reproduce
 # Create a folder. Name that folder. Delete the folder. Make a file with exact same name.
@@ -14,74 +18,107 @@ class EventHandler(pyinotify.ProcessEvent):
 
     def process_IN_CREATE(self, event):
         if self.checks(event):
-            if event.dir:
-                ListenerContainer.add_watch(event.pathname)
-                ListenerContainer.client.mkdir(event.pathname)
-            else:
-                ListenerContainer.client.upload(event.pathname)
+            if ListenerContainer.is_syncing:
+                if event.dir:
+                    ListenerContainer.add_watch(event.pathname)
+                    ListenerContainer.client.mkdir(event.pathname)
+                else:
+                    ListenerContainer.client.upload(event.pathname)
 
     def process_IN_DELETE(self, event):
-        if self.checks(event):
-            if event.dir:
-                ListenerContainer.client.delete_folder(event.pathname)
-            else:
-                ListenerContainer.client.delete_file(event.pathname)
+        if ListenerContainer.is_syncing:
+            if self.checks(event):
+                if event.dir:
+                    ListenerContainer.client.delete_folder(event.pathname)
+                else:
+                    ListenerContainer.client.delete_file(event.pathname)
 
     def process_IN_DELETE_SELF(self, event):
-        if self.checks(event):
-            if event.dir:
-                ListenerContainer.rm_watch(event.pathname)
-                ListenerContainer.client.delete_folder(event.pathname)
-            else:
-                ListenerContainer.client.delete_file(event.pathname)
+        if ListenerContainer.is_syncing:
+            if self.checks(event):
+                if event.dir:
+                    ListenerContainer.rm_watch(event.pathname)
+                    ListenerContainer.client.delete_folder(event.pathname)
+                else:
+                    ListenerContainer.client.delete_file(event.pathname)
 
     def process_IN_MODIFY(self, event):
-        if self.checks(event):
-            ListenerContainer.client.upload(event.pathname)
+        if event.pathname == ListenerContainer.config:
+            time.sleep(1)
+            jd = open(event.pathname)
+            conf = json.load(jd)
+            jd.close()
+            ListenerContainer.is_syncing = conf['is_syncing'] 
+        elif ListenerContainer.is_syncing:
+            if self.checks(event):
+                ListenerContainer.client.upload(event.pathname)
 
     def process_IN_MOVED_FROM(self, event):
-        if self.checks(event):
-            if event.dir:
-                ListenerContainer.move_to_folder = event.pathname
-                ListenerContainer.rm_watch(event.pathname)
-            else:
-                ListenerContainer.move_to_file = event.pathname
-            ListenerContainer.client.move_from(event.pathname)
-
+        if ListenerContainer.is_syncing:
+            if self.checks(event):
+                if event.dir:
+                    ListenerContainer.move_to_folder = event.pathname
+                    ListenerContainer.rm_watch(event.pathname)
+                else:
+                    ListenerContainer.move_to_file = event.pathname
+                ListenerContainer.client.move_from(event.pathname)
+                t = Timer(0.1, self.timeout, [event.pathname])
+                t.start()
+            
     def process_IN_MOVED_TO(self, event):
-        ListenerContainer.move_to_folder = None
-        ListenerContainer.move_to_file = None
-        if event.dir:
-            ListenerContainer.add_watch(event.pathname)
-        if not event.pathname[-1] == '~':
-            ListenerContainer.client.move_to(event.pathname)
+        if ListenerContainer.is_syncing:
+            ListenerContainer.move_to_folder = None
+            ListenerContainer.move_to_file = None
+            if event.dir:
+                ListenerContainer.add_watch(event.pathname)
+            if not event.pathname[-1] == '~':
+                ListenerContainer.client.move_to(event.pathname)
 
     def process_default(self, event, to_append=None):
-        self.checks(event)
+        if ListenerContainer.is_syncing:
+            self.checks(event)
 
+    def timeout(self, pathname):
+        if ListenerContainer.is_syncing:
+            if ListenerContainer.move_to_folder == pathname:
+                try:
+                    ListenerContainer.client.delete_folder(ListenerContainer.move_to_folder)
+                except error_perm as e:
+                    print e  # TODO delete
+                    pass  # nothing to delete
+                ListenerContainer.move_to_folder = None
+            if ListenerContainer.move_to_file == pathname:
+                try:
+                    ListenerContainer.client.delete_file(ListenerContainer.move_to_file)
+                except error_perm as e:
+                    print e  # TODO delete
+                    pass  # nothing to delete
+                ListenerContainer.move_to_file = None
+ 
     def checks(self, event):
         """
         Checks if the last command was a move from command.
         Checks if the file is a temp file.
         """
-        if ListenerContainer.move_to_folder:
-            try:
-                ListenerContainer.client.delete_folder(ListenerContainer.move_to_folder)
-            except error_perm as e:
-                print e  # TODO delete
-                pass  # nothing to delete
-            ListenerContainer.move_to_folder = None
-        if ListenerContainer.move_to_file:
-            try:
-                ListenerContainer.client.delete_file(ListenerContainer.move_to_file)
-            except error_perm as e:
-                print e  # TODO delete
-                pass  # nothing to delete
-            ListenerContainer.move_to_file = None
-        if event.pathname[-1] == '~':  # Temp file
-            return False
-        else:
-            return True
+        if ListenerContainer.is_syncing:
+            if ListenerContainer.move_to_folder:
+                try:
+                    ListenerContainer.client.delete_folder(ListenerContainer.move_to_folder)
+                except error_perm as e:
+                    print e  # TODO delete
+                    pass  # nothing to delete
+                ListenerContainer.move_to_folder = None
+            if ListenerContainer.move_to_file:
+                try:
+                    ListenerContainer.client.delete_file(ListenerContainer.move_to_file)
+                except error_perm as e:
+                    print e  # TODO delete
+                    pass  # nothing to delete
+                ListenerContainer.move_to_file = None
+            if event.pathname[-1] == '~':  # Temp file
+                return False
+            else:
+                return True
 
 
 class ListenerContainer(object):
@@ -92,35 +129,56 @@ class ListenerContainer(object):
     client = None
     __watch_dict = {}
     root_dir = None
+    is_syncing = True
+    config = None
 
     def __init__(self):
         raise Exception('Static class. No __init__')
 
     @staticmethod
     def add_watch(path):
-        path = os.path.relpath(path, ListenerContainer.root_dir)
+        #if not path == ListenerContainer.root_dir:
+        #    path = os.path.relpath(path, ListenerContainer.root_dir)
+        #    print 2, path
         temp = ListenerContainer.watch_manager.add_watch(path, ListenerContainer.mask, rec=True)
         ListenerContainer.__watch_dict.update(temp)
-
+                
+    @staticmethod
+    def add_config(path):
+        temp = ListenerContainer.watch_manager.add_watch(path, pyinotify.IN_MODIFY, rec=False)
+        ListenerContainer.__watch_dict.update(temp)
+        ListenerContainer.config = path
+ 
     @staticmethod
     def rm_watch(path):
-        path = os.path.relpath(path, ListenerContainer.root_dir)
+        #path = os.path.relpath(path, ListenerContainer.root_dir)
         try:
             ListenerContainer.__watch_dict[path]
         except KeyError:
             path = './' + path
         ListenerContainer.watch_manager.rm_watch(ListenerContainer.__watch_dict[path], rec=True)
         del ListenerContainer.__watch_dict[path]
+        
 
-
-def main(ip, user, password, root_dir):
+#def main(ip, port, user, nick ,password, root_dir):
+def main(ip, port):
     """
     Since pyintofiy says not override its init i made a static class for event handler to use.
     """
-    ListenerContainer.root_dir = root_dir
-    ListenerContainer.client = OneDirFtpClient(ip, user, password, ListenerContainer.root_dir)
+    conffile = os.path.split(__file__)[0]
+    conffile = os.path.join(conffile, 'client.json')
+    conffile = os.path.abspath(conffile)
+    jd = open(conffile)
+    conf = json.load(jd)
+    jd.close()
+    ListenerContainer.client = OneDirFtpClient(ip, port, conf['username'], conf['nick'], conf['password'], conf['root_dir'])
+    ListenerContainer.is_syncing = conf['is_syncing']
+    ListenerContainer.root_dir = conf['root_dir']
+    #ListenerContainer.root_dir = os.getcwd() 
     notifier = pyinotify.Notifier(ListenerContainer.watch_manager, EventHandler())
-    ListenerContainer.add_watch('.')
+    ListenerContainer.add_watch(conf['root_dir'])
+    #ListenerContainer.add_watch('.')
+    ListenerContainer.add_config(conffile)
     while True:
         try:
             notifier.process_events()
@@ -143,4 +201,7 @@ def main(ip, user, password, root_dir):
 
 if __name__ == '__main__':
     print 'DONT FOR GET TO SET IP... this is mine!'
-    main('10.0.0.5', 'admin', 'admin', os.getcwd())
+    #main('10.0.0.5', 1024 ,'admin', 'testing', 'admin', os.getcwd())
+    main('10.0.0.5', 1024)
+# This is what the json file looks like, I wrote it by hand... Rupali is making something to generate it
+# {"username": "admin", "root_dir": "/home/justin/abc", "ip": "10.0.0.5", "nick": "testing", "is_syncing": true, "password": "admin", "port": 1024}

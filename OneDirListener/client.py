@@ -50,7 +50,7 @@ class OneDirFtpClient(FTP):
         @param timeout:  The amount of time till the connection cuts itself off. Default=None
         """
         # FTP.__init__(self, host, user, password, '', timeout)
-        FTP.__init__()
+        FTP.__init__(self)
         self.connect(host, port)
         self.login(user, password)
         self.i_am(nick)
