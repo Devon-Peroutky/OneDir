@@ -30,6 +30,14 @@ class OneDirNoAuthClient(object):
         else:
             return rep[1]
 
+    def change_user_password(self, username, password):
+        """
+        Changes a users password
+        @param username: the user who needs password change
+        @param password: the password to change it too.
+        """
+        self.ftp.sendcmd('site changepw %s %s' % (username, password))
+
     def disconnect(self):
         self.ftp.close() 
 
@@ -39,7 +47,7 @@ class OneDirFtpClient(FTP):
     the form that they exist on the server.
     """
     
-    def __init__(self, host, port, user, nick ,password, root_dir):
+    def __init__(self, host, port, user, nick, password, root_dir):
     # def __init__(self, host, user, password, root_dir, timeout=None):
         """
         Right now, I do not know if the the listener splits the path from the file
