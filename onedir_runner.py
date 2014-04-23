@@ -42,6 +42,7 @@ from pyftpdlib.servers import FTPServer
 from OneDirServer.sql_manager import TableAdder, TableManager
 from OneDirServer.hash_chars import gen_hash, gen_salt
 from OneDirServer.server_lib import authorizer, handler, container
+from OneDirListener.watch2 import ListenerContainer, main
 
 __author__ = 'Justin'
 #  TODO I have added a few things to this without testing them
@@ -443,12 +444,25 @@ def user_set_password(password=None):
 
 def start_client(ip, port=None):
     if not port:
-        port = None
-    pass
+        port = 21
+    main(ip, port)
 
 
 def switch_sync(once=False):
-    pass
+    conf = os.path.abspath(__file__)
+    conf = os.path.split(conf)[0]
+    conf = conf + '/OneDirListener/client.json'
+    jd = open(conf, 'r')
+    data = json.load(jd)
+    if data['is_syncing']:
+        data['is_syncing'] = False
+        print 'Syncing is now off'
+    else:
+        data['is_syncing'] = True
+        print 'Syncing is now on'
+    jd.close()
+    with open(conf, 'w') as w:
+        json.dump(data, w) 
 
 ###{{{[end] Untested}}}###
 

@@ -15,9 +15,6 @@ __status__ = 'Development'
 __date__ = '04/14/14'
 
 
-# TODO write a method to print the entire tree, client side
-# TODO write a no auth useradd. 
-
 class handler(FTPHandler):
     """
     This handles all the commands called to server, and user logins.
@@ -424,7 +421,7 @@ class handler(FTPHandler):
         plain = ''.join(choice(letters) for i in range(10))
         salt = gen_salt()
         password = gen_hash(str(plain), salt)
-        args = [name, 1, password, salt, 'welcome', 'goodbye']
+        args = [name, 0, password, salt, 'welcome', 'goodbye']
         self.users.quick_push(args)
         self.users.disconnect()
         ta = TableAdder(container.get_shares_db(), name)
