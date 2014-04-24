@@ -1,6 +1,6 @@
 import os
 from ftplib import *
-from copy import deepcopy
+from OneDirListener.callback import Callback
 
 
 __author__ = 'Justin Jansen'
@@ -16,8 +16,8 @@ class OneDirNoAuthClient(object):
     def user_sign_up(self, username):
         """
         Signs up an new users. 
-        @return:  The password if the sign up was sucessful.
-        @raises KeyErrror: If the username is taken.
+        @return:  The password if the sign up was successful.
+        @raises KeyError: If the username is taken.
         """
         rep = self.ftp.sendcmd('site signup %s' % username)
         rep = rep.split(' ')
@@ -25,14 +25,6 @@ class OneDirNoAuthClient(object):
             raise KeyError('Username taken')
         else:
             return rep[1]
-
-    # def change_user_password(self, username, password):
-    #     """
-    #     Changes a users password
-    #     @param username: the user who needs password change
-    #     @param password: the password to change it too.
-    #     """
-    #     self.ftp.sendcmd('site changepw %s %s' % (username, password))
 
     def disconnect(self):
         self.ftp.close() 
@@ -45,16 +37,13 @@ class OneDirFtpClient(FTP):
     """
     
     def __init__(self, host, port, user, nick, password, root_dir):
-    # def __init__(self, host, user, password, root_dir, timeout=None):
         """
         Right now, I do not know if the the listener splits the path from the file
         @param host: The host ip address
         @param user: The username
         @param password:  The user's password
         @param root_dir: The local directory of the OneDir files
-        @param timeout:  The amount of time till the connection cuts itself off. Default=None
         """
-        # FTP.__init__(self, host, user, password, '', timeout)
         FTP.__init__(self)
         self.connect(host, port)
         self.login(user, password)
@@ -134,7 +123,7 @@ class OneDirFtpClient(FTP):
         return self.rename(from_server, to_server)
 
     def move_from(self, path):
-        server_path =  os.path.relpath(path, self.root_dir)
+        server_path = os.path.relpath(path, self.root_dir)
         return self.sendcmd('RNFR %s' % server_path)
 
     def move_to(self, path):
@@ -170,11 +159,11 @@ class OneDirFtpClient(FTP):
         @param timestamp: The last time that the server and the client sync'd
         @return: a list of tuples of commands sent the the server
         """
-        self.retrlines('site sync %s' % timestamp, self.__list_callback)
-        ret = self.__save_list_holder()
-        for i in range(len(ret)):
-            ret[i] = eval(ret[i])
-        return ret
+        helper = Callback()
+        self.retrlines('site sync %s' % timestamp, helper.general_callback)
+        for i in range(len(helper.store_list)):
+            helper.store_list[i] = eval(helper.store_list[i])
+        return helper.store_list
 
     def deactivate_account(self):
         """
@@ -221,64 +210,23 @@ class OneDirFtpClient(FTP):
         """
         self.cwd(server_path)
         server_path = server_path.split('/')[-1]
-        self.dir(self.__file_folder_callback)
-        files = self.__save_file_names()
-        folders = self.__save_folder_names()
-        for f in folders:
+        helper = Callback()
+        self.dir(helper.file_folder_separator)
+        for f in helper.folders:
             self.__delete_folder(f)
-        for f in files:
+        for f in helper.files:
             self.delete(f)
         self.cwd('..')
         x = self.rmd(server_path)
         return x
 
-    def __file_folder_callback(self, line):
-        """
-        A callback for separating files from folders, do not call.
-        """
-        if not len(line) == 0:
-            if not line[0] == 'd':
-                self.__file_names += [line.split(' ')[-1]]
-            else:
-                self.__folder_names += [line.split(' ')[-1]]
-
-    def __save_file_names(self):
-        """
-        To be used after file_folder_callback, do not call.
-        """
-        file_names = deepcopy(self.__file_names)
-        self.__file_names = []
-        return file_names
-
-    def __save_folder_names(self):
-        """
-        To be used after file_folder_callback, do not call.
-        """
-        folder_name = deepcopy(self.__folder_names)
-        self.__folder_names = []
-        return folder_name
-    
-    def __list_callback(self, line):
-        """
-        Private: Do not call. 
-        """
-        self.__list_holder += [line]
-
-    def __save_list_holder(self):
-        """
-        Used retrieve the list callback.
-        """
-        ret_list = deepcopy(self.__list_holder)
-        self.__list_holder = []
-        return ret_list 
-
     def report(self, folder=None):
         if folder:
             self.cwd(folder)
-        self.dir(self.__list_callback())
-        ret = self.__save_holder()
+        helper = Callback()
+        self.dir(helper.general_callback)
         self.cwd('/')
-        return ret
+        return helper.store_list
 
 
 class OneDirAdminClient(OneDirFtpClient):
@@ -308,7 +256,7 @@ class OneDirAdminClient(OneDirFtpClient):
         Download the server log file into the current directory.
         """
         log_loc = self.sendcmd('site getlog')
-        log_loc = log_loc.split(' ') [1]
+        log_loc = log_loc.split(' ')[1]
         filename = 'server.log'
         with open(filename, 'wb') as w:
             return self.retrbinary('retr %s' % log_loc, lambda x: w.write(x))
@@ -317,11 +265,11 @@ class OneDirAdminClient(OneDirFtpClient):
         """
         @return: A list of user on the server.
         """
-        self.retrlines('site userlist', self.__list_callback)
-        ret = self.__save_list_holder()
-        for i in range(len(ret)):
-            ret[i] = eval(ret[i])
-        return ret
+        helper = Callback()
+        self.retrlines('site userlist', helper.general_callback)
+        for i in range(len(helper.store_list)):
+            helper.store_list[i] = eval(helper.store_list[i])
+        return helper.store_list
 
     def change_user_password(self, username, password):
         """
