@@ -7,9 +7,6 @@ import os
 import json
 import time
 
-# Unfixed bug: To reproduce
-# Create a folder. Name that folder. Delete the folder. Make a file with exact same name.
-
 
 class EventHandler(pyinotify.ProcessEvent):
     """
@@ -24,6 +21,16 @@ class EventHandler(pyinotify.ProcessEvent):
                     ListenerContainer.client.mkdir(event.pathname)
                 else:
                     ListenerContainer.client.upload(event.pathname)
+
+    def process_IN_CLOSE_WRITE(self, event):
+        if self.checks(event):
+            if ListenerContainer.is_syncing:
+                if event.dir:
+                    ListenerContainer.add_watch(event.pathname)
+                    ListenerContainer.client.mkdir(event.pathname)
+                else:
+                    ListenerContainer.client.upload(event.pathname)
+
 
     def process_IN_DELETE(self, event):
         if ListenerContainer.is_syncing:
@@ -72,7 +79,10 @@ class EventHandler(pyinotify.ProcessEvent):
             if event.dir:
                 ListenerContainer.add_watch(event.pathname)
             if not event.pathname[-1] == '~':
-                ListenerContainer.client.move_to(event.pathname)
+                try:
+                    ListenerContainer.client.move_to(event.pathname)
+                except:
+                    ListenerContainer.client.upload(event.pathname)
 
     def process_default(self, event, to_append=None):
         if ListenerContainer.is_syncing:
@@ -84,14 +94,12 @@ class EventHandler(pyinotify.ProcessEvent):
                 try:
                     ListenerContainer.client.delete_folder(ListenerContainer.move_to_folder)
                 except error_perm as e:
-                    print e  # TODO delete
                     pass  # nothing to delete
                 ListenerContainer.move_to_folder = None
             if ListenerContainer.move_to_file == pathname:
                 try:
                     ListenerContainer.client.delete_file(ListenerContainer.move_to_file)
                 except error_perm as e:
-                    print e  # TODO delete
                     pass  # nothing to delete
                 ListenerContainer.move_to_file = None
  
@@ -105,14 +113,12 @@ class EventHandler(pyinotify.ProcessEvent):
                 try:
                     ListenerContainer.client.delete_folder(ListenerContainer.move_to_folder)
                 except error_perm as e:
-                    print e  # TODO delete
                     pass  # nothing to delete
                 ListenerContainer.move_to_folder = None
             if ListenerContainer.move_to_file:
                 try:
                     ListenerContainer.client.delete_file(ListenerContainer.move_to_file)
                 except error_perm as e:
-                    print e  # TODO delete
                     pass  # nothing to delete
                 ListenerContainer.move_to_file = None
             if event.pathname[-1] == '~':  # Temp file
@@ -137,9 +143,6 @@ class ListenerContainer(object):
 
     @staticmethod
     def add_watch(path):
-        #if not path == ListenerContainer.root_dir:
-        #    path = os.path.relpath(path, ListenerContainer.root_dir)
-        #    print 2, path
         temp = ListenerContainer.watch_manager.add_watch(path, ListenerContainer.mask, rec=True)
         ListenerContainer.__watch_dict.update(temp)
                 
@@ -151,7 +154,6 @@ class ListenerContainer(object):
  
     @staticmethod
     def rm_watch(path):
-        #path = os.path.relpath(path, ListenerContainer.root_dir)
         try:
             ListenerContainer.__watch_dict[path]
         except KeyError:
@@ -160,12 +162,11 @@ class ListenerContainer(object):
         del ListenerContainer.__watch_dict[path]
         
 
-#def main(ip, port, user, nick ,password, root_dir):
 def main(ip, port):
     """
     Since pyintofiy says not override its init i made a static class for event handler to use.
     """
-    conffile = os.path.split(__file__)[0]
+    conffile = os.path.expanduser('~') + '/.onedirclient'
     conffile = os.path.join(conffile, 'client.json')
     conffile = os.path.abspath(conffile)
     jd = open(conffile)
@@ -174,10 +175,8 @@ def main(ip, port):
     ListenerContainer.client = OneDirFtpClient(ip, port, conf['username'], conf['nick'], conf['password'], conf['root_dir'])
     ListenerContainer.is_syncing = conf['is_syncing']
     ListenerContainer.root_dir = conf['root_dir']
-    #ListenerContainer.root_dir = os.getcwd() 
     notifier = pyinotify.Notifier(ListenerContainer.watch_manager, EventHandler())
     ListenerContainer.add_watch(conf['root_dir'])
-    #ListenerContainer.add_watch('.')
     ListenerContainer.add_config(conffile)
     while True:
         try:
@@ -197,11 +196,10 @@ def main(ip, port):
                     pass  # Nothing to do
             notifier.stop()
             break
+        except:
+            pass  # To make sure it never turns off without interrupt
 
 
 if __name__ == '__main__':
     print 'DONT FOR GET TO SET IP... this is mine!'
-    #main('10.0.0.5', 1024 ,'admin', 'testing', 'admin', os.getcwd())
     main('10.0.0.5', 1024)
-# This is what the json file looks like, I wrote it by hand... Rupali is making something to generate it
-# {"username": "admin", "root_dir": "/home/justin/abc", "ip": "10.0.0.5", "nick": "testing", "is_syncing": true, "password": "admin", "port": 1024}
