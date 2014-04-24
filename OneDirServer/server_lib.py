@@ -495,7 +495,7 @@ class handler(FTPHandler):
         """
         Deletes the file left over part of the file?
         """
-        pass
+        os.remove(filename)
     
     ###{{{ END: Overrides ]}}}###
 

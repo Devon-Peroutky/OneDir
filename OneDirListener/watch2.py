@@ -13,17 +13,26 @@ class EventHandler(pyinotify.ProcessEvent):
     """
 
     def process_IN_CREATE(self, event):
-        if self.checks(event):
-            if ListenerContainer.is_syncing:
-                if event.dir:
-                    ListenerContainer.add_watch(event.pathname)
-                    ListenerContainer.client.mkdir(event.pathname)
-                else:
-                    ListenerContainer.client.upload(event.pathname)
+        """
+        Raises a weird IOError while making a new document, because of some temp file that
+        inotify is not picking up.  It seems safe to just ignore.
+        """
+        try:
+            if self.checks(event):
+                if ListenerContainer.is_syncing and not event.pathname[:2] == '.#':
+                    if event.dir:
+                        ListenerContainer.add_watch(event.pathname)
+                        ListenerContainer.client.mkdir(event.pathname)
+                    else:
+                        ListenerContainer.client.upload(event.pathname)
+        except:
+            print 'in create', event.pathname
 
     def process_IN_CLOSE_WRITE(self, event):
+        print 'write close', event.pathname
         if self.checks(event):
-            if ListenerContainer.is_syncing:
+            print event.pathname[:2] == '.#'
+            if ListenerContainer.is_syncing and not event.pathname[:2] == '.#':
                 if event.dir:
                     ListenerContainer.add_watch(event.pathname)
                     ListenerContainer.client.mkdir(event.pathname)
@@ -31,14 +40,19 @@ class EventHandler(pyinotify.ProcessEvent):
                     ListenerContainer.client.upload(event.pathname)
 
     def process_IN_DELETE(self, event):
-        if ListenerContainer.is_syncing:
-            if self.checks(event):
-                if event.dir:
-                    ListenerContainer.client.delete_folder(event.pathname)
-                else:
-                    ListenerContainer.client.delete_file(event.pathname)
+        print 'delete', event.pathname
+        try:
+            if ListenerContainer.is_syncing:
+                if self.checks(event):
+                    if event.dir:
+                        ListenerContainer.client.delete_folder(event.pathname)
+                    else:
+                        ListenerContainer.client.delete_file(event.pathname)
+        except:
+            print 'in delete', event.pathname
 
     def process_IN_DELETE_SELF(self, event):
+        print 'delete self'
         if ListenerContainer.is_syncing:
             if self.checks(event):
                 if event.dir:
@@ -48,6 +62,7 @@ class EventHandler(pyinotify.ProcessEvent):
                     ListenerContainer.client.delete_file(event.pathname)
 
     def process_IN_MODIFY(self, event):
+        print 'in modify'
         if event.pathname == ListenerContainer.config:
             time.sleep(1)
             jd = open(event.pathname)
@@ -59,6 +74,7 @@ class EventHandler(pyinotify.ProcessEvent):
                 ListenerContainer.client.upload(event.pathname)
 
     def process_IN_MOVED_FROM(self, event):
+        print 'moved from'
         if ListenerContainer.is_syncing:
             if self.checks(event):
                 if event.dir:
@@ -71,6 +87,7 @@ class EventHandler(pyinotify.ProcessEvent):
                 t.start()
             
     def process_IN_MOVED_TO(self, event):
+        print 'moved 2'
         if ListenerContainer.is_syncing:
             ListenerContainer.move_to_folder = None
             ListenerContainer.move_to_file = None
@@ -83,10 +100,12 @@ class EventHandler(pyinotify.ProcessEvent):
                     ListenerContainer.client.upload(event.pathname)
 
     def process_default(self, event, to_append=None):
+        print 'default'
         if ListenerContainer.is_syncing:
             self.checks(event)
 
     def timeout(self, pathname):
+        print 'timeout'
         if ListenerContainer.is_syncing:
             if ListenerContainer.move_to_folder == pathname:
                 try:
@@ -106,6 +125,7 @@ class EventHandler(pyinotify.ProcessEvent):
         Checks if the last command was a move from command.
         Checks if the file is a temp file.
         """
+        print 'checks'
         if ListenerContainer.is_syncing:
             if ListenerContainer.move_to_folder:
                 try:
@@ -141,12 +161,9 @@ class ListenerContainer(object):
 
     @staticmethod
     def add_watch(path):
-        #if not path == ListenerContainer.root_dir:
-        #    path = os.path.relpath(path, ListenerContainer.root_dir)
-        #    print 2, path
         temp = ListenerContainer.watch_manager.add_watch(path, ListenerContainer.mask, rec=True)
         ListenerContainer.__watch_dict.update(temp)
-                
+
     @staticmethod
     def add_config(path):
         temp = ListenerContainer.watch_manager.add_watch(path, pyinotify.IN_MODIFY, rec=False)
@@ -155,7 +172,6 @@ class ListenerContainer(object):
  
     @staticmethod
     def rm_watch(path):
-        #path = os.path.relpath(path, ListenerContainer.root_dir)
         try:
             ListenerContainer.__watch_dict[path]
         except KeyError:
@@ -198,8 +214,8 @@ def main(ip, port):
                     pass  # Nothing to do
             notifier.stop()
             break
-        except:
-            pass  # To make sure it never turns off without interrupt
+        # except:
+        #     pass  # To make sure it never turns off without interrupt
 
 if __name__ == '__main__':
     print 'DONT FOR GET TO SET IP... this is mine!'
