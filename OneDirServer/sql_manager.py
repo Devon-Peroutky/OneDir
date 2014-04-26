@@ -32,7 +32,11 @@ class SqlManager(object):
     """
 
     def __init__(self, database_name):
-        self.name = database_name.split('.')[0]
+        # self.name = database_name.split('.')[0]
+        self.name = database_name.split('.')
+        if self.name[-1] == 'db':
+            del self.name[-1]
+        self.name = '.'.join(self.name)
         self.tables = self._pull_tables()
         self.con = None
 

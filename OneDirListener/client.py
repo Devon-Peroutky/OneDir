@@ -96,8 +96,6 @@ class OneDirFtpClient(FTP):
         server_path = os.path.relpath(tmp[0], self.root_dir)
         server_file = server_path + '/' + tmp[1]
         to_return = self.storbinary('STOR %s' % server_file, open(filename, 'rb'))
-        lr = self.lastresp
-        self.lastresp = lr
         return to_return
 
     def download(self, filename):
@@ -205,14 +203,12 @@ class OneDirFtpClient(FTP):
         """ 
         Recursive folder deleter, do not call.
         """
-        print server_path
         helper = Callback()
         self.dir(server_path, helper.file_folder_separator)
         for f in helper.folders:
             self.__delete_folder('%s/%s' % (server_path, f))
         for f in helper.files:
             self.delete('%s/%s' % (server_path, f))
-        # self.cwd('..')
         x = self.rmd(server_path)
         return x
 

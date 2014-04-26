@@ -311,7 +311,7 @@ class handler(FTPHandler):
         Should provide better info then override the 'log' method. 
         """
         FTPHandler.pre_process_command(self, line, cmd, arg)
-        exclude = ['USER', 'TYPE', 'PASS', 'QUIT', 'PASV', 'SITE']
+        exclude = ['USER', 'TYPE', 'PASS', 'QUIT', 'PASV', 'SITE', 'PWD', 'LIST']
         if not cmd in exclude:
             self.__update_user_actions(line, cmd, arg)   
 
