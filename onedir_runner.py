@@ -42,6 +42,7 @@ from OneDirServer.sql_manager import TableAdder, TableManager
 from OneDirServer.hash_chars import gen_hash, gen_salt
 from OneDirServer.server_lib import authorizer, handler, container
 from OneDirListener.watch2 import ListenerContainer, main
+#from OneDirListener.watch3 import main
 
 __author__ = 'Justin'
 #  TODO I have added a few things to this without testing them
@@ -453,9 +454,11 @@ def start_client(ip, port=None):
 
 
 def switch_sync(once=False):
-    conf = os.path.abspath(__file__)
-    conf = os.path.split(conf)[0]
-    conf += '/OneDirListener/client.json'
+    # conf = os.path.abspath(__file__)
+    # conf = os.path.split(conf)[0]
+    # conf += '/OneDirListener/client.json'
+    conf = os.path.expanduser('~')
+    conf = '%s/.onedirclient/client.json' % conf
     jd = open(conf, 'r')
     data = json.load(jd)
     if data['is_syncing']:
