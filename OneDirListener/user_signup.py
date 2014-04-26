@@ -16,8 +16,8 @@ def main(ip, port, username=None, password=None): #connect with client.py after 
     #client = OneDirAdminClient(socket.gethostbyname(socket.gethostname()), "admin", "admin", os.getcwd())
     client = OneDirNoAuthClient(ip, port)
     nickname = get_mac()
-    if not username:
-        username = raw_input("Welcome new user! Enter in your desired username:")
+    if not username: #paramaters not passed in
+        username = raw_input("Welcome new user! Enter in your desired username: ")
         temppw = None
         while password is None:
             try:
@@ -37,15 +37,52 @@ def main(ip, port, username=None, password=None): #connect with client.py after 
         # nickname = get_mac()
         data = {"username": username, "root_dir": root_dir, "nick": nickname, "is_syncing": True, "password": pw}
         path = os.path.expanduser('~') + '/.onedirlistener/client.json'
-        with open(path, 'w') as file:
-            json.dump(data, file)
+        with open(path, 'w') as filename:
+            json.dump(data, filename)
         ftpclient = OneDirFtpClient(ip, port, username, nickname, password, root_dir)
         ftpclient.set_password(password, temppw)
-    else:
+    else: #parameters passed in
         temppw = None
         try:
             temppw = client.user_sign_up(username)
-            data = data = {"username": username, "root_dir": root_dir, "nick": nickname, "is_syncing": True, "password": password}
+            root_dir = os.path.expanduser('~') + '/OneDirServer'
+            print 'The default root directory is: %s/OneDirServer' % os.path.expanduser('~')
+            ret = False
+            while True:
+                yes = ['y', 'ye', 'yes']
+                no = ['n', 'no']
+                rep = raw_input('Would you like to use this: [Y/n]')
+                rep = rep.lower()
+                rep = rep.strip(' ')
+                if rep in yes + no + ['']:
+                    ret = rep in yes + ['']
+                    break
+                else:
+                    prompt = 'Input not understood: please enter yes or no.'
+                    print prompt
+            if not ret:
+                for i in range(3):
+                    root_dir = raw_input('Please enter path to where you want the server file to go: ')
+                    if os.path.isdir(root_dir):
+                        try:
+                            os.rmdir(root_dir)
+                            os.mkdir(root_dir)
+                            return root_dir
+                        except OSError:
+                            print 'Sorry, not an empty directory. Try again.'
+                    else:
+                        try:
+                            os.mkdir(root_dir)
+                            return root_dir
+                        except OSError:
+                            print 'Sorry, path not valid. Try again.'
+                    if i == 2:
+                        print 'Too many tries. Aborting.'
+                        sys.exit(1)
+            data = {"username": username, "root_dir": root_dir, "nick": nickname, "is_syncing": True, "password": password}
+            path = os.path.expanduser('~') + '/.onedirlistener/client.json'
+            with open(path, 'w') as filename:
+                json.dump(data, filename)
             ftpclient = OneDirFtpClient(ip, port, username, nickname, password, root_dir)
             ftpclient.set_password(password, temppw)
         except KeyError:
