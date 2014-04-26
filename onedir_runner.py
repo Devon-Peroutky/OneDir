@@ -42,6 +42,7 @@ from OneDirServer.sql_manager import TableAdder, TableManager
 from OneDirServer.hash_chars import gen_hash, gen_salt
 from OneDirServer.server_lib import authorizer, handler, container
 from OneDirListener.watch2 import ListenerContainer, main
+from OneDirListener.user_signup import main as signup
 
 __author__ = 'Justin'
 #  TODO I have added a few things to this without testing them
@@ -390,37 +391,38 @@ def get_admin(ip, port):  # TODO not started
 
 
 def user_signup(ip, port=None, user=None, password=None):
-    if not port:
-        port = 21
-    na = OneDirNoAuthClient(ip, port)
-    rep = None
-    if not user:
-        while True:
-            username = raw_input('Please select a username: ')
-            rep = na.user_sign_up(username)
-            if rep == 'False':
-                print 'Sorry %s is taken' % username
-            else:
-                break
-    na.ftp.close()
-    na.ftp.quit()
-    del na
-    fc = OneDirFtpClient(ip, port, user, 'signingup', rep, os.getcwd())
-    if not password:
-        while True:
-            first = getpass('Please enter a password: ')
-            second = getpass('Re-enter password: ')
-            if first == second:
-                password = first
-                break
-            else:
-                print 'Sorry passwords did not match, try again.'
-    fc.set_password(password, rep)
-    fc.close()
-    fc.quit()
+    # if not port:
+    #     port = 21
+    # na = OneDirNoAuthClient(ip, port)
+    # rep = None
+    # if not user:
+    #     while True:
+    #         username = raw_input('Please select a username: ')
+    #         rep = na.user_sign_up(username)
+    #         if rep == 'False':
+    #             print 'Sorry %s is taken' % username
+    #         else:
+    #             break
+    # na.ftp.close()
+    # na.ftp.quit()
+    # del na
+    # fc = OneDirFtpClient(ip, port, user, 'signingup', rep, os.getcwd())
+    # if not password:
+    #     while True:
+    #         first = getpass('Please enter a password: ')
+    #         second = getpass('Re-enter password: ')
+    #         if first == second:
+    #             password = first
+    #             break
+    #         else:
+    #             print 'Sorry passwords did not match, try again.'
+    # fc.set_password(password, rep)
+    # fc.close()
+    # fc.quit()
+    signup(ip, port, user, password)
     # TODO This should write a user setup file. Too
     # Generate a Nick. 
-    print 'User created sucessfully'
+    print 'User created successfully'
 
 
 def user_setup(user=None, password=None, nick=None): # TODO IP PORT
