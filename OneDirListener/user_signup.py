@@ -24,7 +24,7 @@ def main(ip, port, username=None, password=None): #connect with client.py after 
                 temppw = client.user_sign_up(username)
                 #print "Username is available! Here is your temporary password:", password
             except KeyError:
-                username = raw_input("Sorry, that username is taken. Please enter another username:")
+                username = raw_input("Sorry, that username is taken. Please enter another username: ")
         password = getpass("Username available! Please enter in a desired password:")
         pw_check = getpass("Please re-enter your password:")
         while not password == pw_check:
