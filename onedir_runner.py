@@ -59,7 +59,7 @@ class GuidedSetup(object):
         print 'The default server directory is: %s/OneDirServer' % os.path.expanduser('~')
         ret = False
         while True:
-            rep = raw_input('Wold you like to use this:%s ' % self.opt_yes)
+            rep = raw_input('Would you like to use this:%s ' % self.opt_yes)
             rep = rep.lower()
             rep = rep.strip(' ')
             if rep in self.yes + self.no + ['']:
@@ -74,7 +74,7 @@ class GuidedSetup(object):
         print 'The default admin is: Username - admin; Password - admin'
         ret = False
         while True:
-            rep = raw_input('Wold you like to use this:%s ' % self.opt_no)
+            rep = raw_input('Would you like to use this:%s ' % self.opt_no)
             rep = rep.lower()
             rep = rep.strip(' ')
             if rep in self.yes + self.no + ['']:
