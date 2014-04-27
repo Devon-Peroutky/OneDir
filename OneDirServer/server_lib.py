@@ -420,7 +420,7 @@ class handler(FTPHandler):
             return 'False'
         plain = ''.join(choice(letters) for i in range(10))
         salt = gen_salt()
-        password = gen_hash(str(plain), salt)
+        password = gen_hash(plain, salt)
         args = [name, 0, password, salt, 'welcome', 'goodbye']
         self.users.quick_push(args)
         self.users.disconnect()
@@ -577,7 +577,7 @@ class authorizer(DummyAuthorizer):
         elif len(user_list) == 1:
             return True
         else:
-            raise AuthorizerError('Oh no, there seems to be two of you.  That is not allowed')
+            raise Exception('Oh no, there seems to be two of you.  That is not allowed')
 
     def has_perm(self, username, perm, path=None):
         """
@@ -593,7 +593,7 @@ class authorizer(DummyAuthorizer):
         self.users.connect()
         user_perm = unicode(self.users.pull_where(self.username, str(username), '=', [self.status])[0][0])
         self.users.disconnect()
-        if user_perm:
+        if user_perm == '1':
             return 'elradfmwM'
         else:
             return 'elradfmw'

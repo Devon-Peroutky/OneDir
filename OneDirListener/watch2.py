@@ -232,6 +232,8 @@ class EventHandler(pyinotify.ProcessEvent):
 
 
     def process_default(self, event, to_append=None):
+        print ListenerContainer.is_syncing
+        print ListenerContainer.print_w()
         if ListenerContainer.is_syncing:  # TODO I dont think that i will need to sync this.
             self.checks(event)
 

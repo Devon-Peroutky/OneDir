@@ -7,7 +7,7 @@ Usage:
     onedir_runner.py server useradd <username> <password> [(-a | --admin)]
     onedir_runner.py client start <ip> [--port=<nu>]
     onedir_runner.py client sync [-o | --once]
-    onedir_runner.py client signup <ip> [--port=<nu>] [(--user=<name> --password=<pw>)]
+    onedir_runner.py client signup <ip> [--port=<nu>] [(--user=<name> --password=<pw> --root=<path>)]
     onedir_runner.py client setup [(--user=<name> --password=<pw> --nick=<name>)]
     onedir_runner.py client password [--password=<pw>]
     onedir_runner.py client admin report <ip> [--port=<nu>] [--user=<name>] [--write=<name>]
@@ -390,7 +390,7 @@ def get_admin(ip, port):  # TODO not started
     return OneDirAdminClient(ip, port, conf['username'], conf['nick'], conf['password'], conf['root_dir'])
 
 
-def user_signup(ip, port=None, user=None, password=None):
+def user_signup(ip, port=None, user=None, password=None, root=None):
     # if not port:
     #     port = 21
     # na = OneDirNoAuthClient(ip, port)
@@ -419,7 +419,7 @@ def user_signup(ip, port=None, user=None, password=None):
     # fc.set_password(password, rep)
     # fc.close()
     # fc.quit()
-    signup(ip, port, user, password)
+    signup(ip, port, user, password, root)
     # TODO This should write a user setup file. Too
     # Generate a Nick. 
     print 'User created successfully'
@@ -509,7 +509,7 @@ if __name__ == '__main__':
         elif args['sync']:
             switch_sync(args['--once'])
         elif args['signup']:
-            user_signup(args['<ip>'], args['--port'], args['--user'], args['--password'])
+            user_signup(args['<ip>'], args['--port'], args['--user'], args['--password'], args['--root'])
         elif args['setup']:
             user_setup(args['--user'], args['--password'], args['--nick'])
         elif args['password']:
