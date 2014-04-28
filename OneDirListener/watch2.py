@@ -538,7 +538,7 @@ def sync(merged_list, sync_dir):
 def checker():
     counter = 0
     while ListenerContainer.is_checking:
-        ListenerContainer.print_w()
+        # ListenerContainer.print_w()
         time.sleep(3)
         if not ListenerContainer.updating:
             counter = 0

@@ -166,14 +166,14 @@ class OneDirFtpClient(FTP):
         """
         self.sendcmd('site deactiv')
 
-    def set_password(self, new_pw, old_pw):
+    def set_password(self, old_pw, new_pw):
         """
         Changes the users password. Won't deactivate session.
         No need to log out and back in.  
         @param new_pw: plain text new password.
         @param old_pw: plain text old password. 
         """
-        self.sendcmd('site setpw %s %s' % (new_pw, old_pw))
+        self.sendcmd('site setpw %s %s' % (old_pw, new_pw))
 
     def set_sync_flag(self, arg, arg_two=None):  # Untested
         """ 
@@ -241,7 +241,7 @@ class OneDirAdminClient(OneDirFtpClient):
         Completely deletes a user from the server.
         @param username: The username to delete.
         """
-        self.sendcmd('site userdel' % username)
+        self.sendcmd('site userdel %s' % username)
 
     def get_log(self):
         """

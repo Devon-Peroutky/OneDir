@@ -10,6 +10,7 @@ Usage:
     onedir_runner.py client signup <ip> [--port=<nu>] [(--user=<name> --password=<pw> --root=<path>)]
     onedir_runner.py client setup <ip>[--port=<nu>][(--user=<name> --password=<pw> --root=<name>)]
     onedir_runner.py client password [--password=<pw>]
+    onedir_runner.py client changepw <ip> <user> [--port=<nu>]
     onedir_runner.py client admin report <ip> [--port=<nu>] [--user=<name>] [--write=<name>]
     onedir_runner.py client admin userinfo <ip> [--port=<nu>] [--user=<name>] [--write=<name>]
     onedir_runner.py client admin remove <ip> <user> [--port=<nu>]
@@ -43,6 +44,7 @@ from OneDirServer.hash_chars import gen_hash, gen_salt
 from OneDirServer.server_lib import authorizer, handler, container
 from OneDirListener.watch2 import ListenerContainer, main
 from OneDirListener.user_signup import main as signup
+from OneDirListener.user_change_pw import main as user_changepw
 from uuid import getnode as get_mac
 
 __author__ = 'Justin'
@@ -374,7 +376,8 @@ def admin_change_password(ip, port, username, password):
     try:
         ad.change_user_password(username, password)
         print '%s password is now changed' % username
-    except:
+    except Exception as e:
+        print e
         print 'Password change failed: %s not found.' % username
 
 
@@ -384,7 +387,7 @@ def admin_getlog(ip, port):
 
 
 def get_admin(ip, port):  # TODO not started
-    conf = os.path.expanduser('~') + '/.onedirclient'
+    conf = os.path.expanduser('~') + '/.onedirclient/client.json'
     jd = open(conf)
     conf = json.load(jd)
     jd.close()
@@ -423,21 +426,32 @@ def user_setup(ip, port=None, user=None, password=None, root=None): # TODO IP PO
             print 'invalid credentials'
 
 
-def user_set_password(password=None):  # TODO IP PORT
-    # from setup file get username and passowrd. 
+def user_set_password(ip, username=None, port=None):  # TODO IP PORT
+    # from setup file get username and password.
     # fc = OneDirClient( ... )
     # old_password = password from files.
-    if not password:
-        while True:
-            first = getpass('Please enter a password: ')
-            second = getpass('Re-enter password: ')
-            if first == second:
-                password = first
-                break
-            else:
-                print 'Sorry the passwords did not match, try again.'
-                # fc.set_password(password, old_password)
-                # write new password to the file.
+    # if not password:
+    #     while True:
+    #         first = getpass('Please enter a password: ')
+    #         second = getpass('Re-enter password: ')
+    #         if first == second:
+    #             password = first
+    #             break
+    #         else:
+    #             print 'Sorry the passwords did not match, try again.'
+    #             # fc.set_password(password, old_password)
+    #             # write new password to the file.
+    conffile = os.path.expanduser('~') + '/.onedirclient'
+    conffile = os.path.join(conffile, 'client.json')
+    conffile = os.path.abspath(conffile)
+    jd = open(conffile)
+    conf = json.load(jd)
+    jd.close()
+    root_dir = conf['root_dir']
+    password = conf['password']
+    nick = conf['nick']
+    port = 21
+    user_changepw(ip, port, username, nick, password, root_dir)
 
 
 def start_client(ip, port=None):
@@ -493,7 +507,7 @@ if __name__ == '__main__':
             elif args['remove']:
                 admin_remove(args['<ip>'], args['port'], args['<user>'])
             elif args['changepw']:
-                admin_change_password(args['<ip>'], args['port'], args['<user>'], args['<password>'])
+                admin_change_password(args['<ip>'], args['--port'], args['<user>'], args['<password>'])
             elif args['getlog']:
                 admin_getlog(args['<ip>'], args['port'], )
         elif args['start']:
@@ -506,3 +520,5 @@ if __name__ == '__main__':
             user_setup(args['<ip>'], args['--port'], args['--user'], args['--password'], args['--root'])
         elif args['password']:
             user_set_password(args['--password'])
+        elif args['changepw']:
+            user_set_password(args['<ip>'], args['<user>'], args['--port'])
