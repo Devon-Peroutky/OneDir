@@ -101,7 +101,8 @@ def root_check(root_dir):
 
 
 def create_user(ip, port, username, password, temppw, nickname, root_dir):
-    data = {"username": username, "root_dir": root_dir, "nick": nickname, "is_syncing": True, "password": password}
+    data = {"username": username, "root_dir": root_dir, "nick": str(nickname),
+            "is_syncing": True, "password": password, 'last_sync': "0"}
     path = os.path.expanduser('~') + '/.onedirclient/client.json'
     conf_folder = os.path.expanduser('~') +'/.onedirclient'
     if not os.path.exists(conf_folder):

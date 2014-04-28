@@ -57,8 +57,11 @@ class ListenerContainer(object):
                 path = ListenerContainer.root_dir
             else:
                 path = './' + path
-        ListenerContainer.watch_manager.rm_watch(ListenerContainer.__watch_dict[path], rec=True)
-        del ListenerContainer.__watch_dict[path]
+        try:
+            ListenerContainer.watch_manager.rm_watch(ListenerContainer.__watch_dict[path], rec=True)
+            del ListenerContainer.__watch_dict[path]
+        except:
+            pass
 
     @staticmethod
     def print_w():
@@ -147,12 +150,15 @@ class EventHandler(pyinotify.ProcessEvent):
 
     def process_IN_DELETE_SELF(self, event):
         if self.checks(event):
-            if ListenerContainer.is_syncing:
-                if event.dir:
-                    ListenerContainer.rm_watch(event.pathname)
-                    ListenerContainer.client.delete_folder(event.pathname)
-                else:
-                    ListenerContainer.client.delete_file(event.pathname)
+            try:
+                if ListenerContainer.is_syncing:
+                    if event.dir:
+                        ListenerContainer.rm_watch(event.pathname)
+                        ListenerContainer.client.delete_folder(event.pathname)
+                    else:
+                        ListenerContainer.client.delete_file(event.pathname)
+            except error_reply:
+                reset()
             else:
                 timer = now()
                 if event.dir:
@@ -273,14 +279,18 @@ class EventHandler(pyinotify.ProcessEvent):
             if ListenerContainer.move_to_folder:
                 try:
                     ListenerContainer.client.delete_folder(ListenerContainer.move_to_folder)
-                except error_perm as e:
+                except error_perm:
                     pass  # nothing to delete
+                except error_reply:
+                    reset()
                 ListenerContainer.move_to_folder = None
             if ListenerContainer.move_to_file:
                 try:
                     ListenerContainer.client.delete_file(ListenerContainer.move_to_file)
-                except error_perm as e:
+                except error_perm:
                     pass  # nothing to delete
+                except error_reply:
+                    reset()
                 ListenerContainer.move_to_file = None
             if event.pathname[-1] == '~':  # Temp file
                 return False
@@ -559,8 +569,10 @@ def updater():
             )
             client_list = get_client_list()
             merged = merge_lists(server_list, client_list)
+            print ListenerContainer.last_sync
             ListenerContainer.last_sync = start_sync
             if len(merged) == 0:
+                print 'cleared'
                 break
             else:
                 sync(merged, ListenerContainer.root_dir)
@@ -586,6 +598,17 @@ def reset():
     )
 
 
+def update_last_sync():
+    conf = os.path.expanduser('~')
+    conf = '%s/.onedirclient/client.json' % conf
+    jd = open(conf, 'r')
+    data = json.load(jd)
+    data['last_syncing'] = ListenerContainer.last_sync
+    jd.close()
+    with open(conf, 'w') as w:
+        json.dump(data, w)
+
+
 def main(ip, port):
     """
     Since pyintofiy says not override its init i made a static class for event handler to use.
@@ -599,6 +622,8 @@ def main(ip, port):
     conf['ip'] = ip
     conf['port'] = port
     ListenerContainer.login = conf
+    print conf['nick']
+    print type(conf['nick'])
     ListenerContainer.client = OneDirFtpClient(
         ip,
         port,
@@ -614,6 +639,7 @@ def main(ip, port):
     ListenerContainer.nick = conf['nick']
     notifier = pyinotify.Notifier(ListenerContainer.watch_manager, EventHandler())
     ListenerContainer.add_watch(conf['root_dir'])
+    ListenerContainer.last_sync = conf['last_sync']
     ListenerContainer.add_config(conffile)
     ListenerContainer.sync_db = TableManager('/home/justin/.onedirclient/sync.db', 'local')
     if not conf['is_syncing']:
@@ -636,6 +662,7 @@ def main(ip, port):
                     pass  # Nothing to do
             ListenerContainer.is_checking = False
             notifier.stop()
+            update_last_sync()
             break
         except not KeyboardInterrupt:
             print 'error caught in main'

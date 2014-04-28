@@ -123,7 +123,7 @@ class handler(FTPHandler):
             log = log.split('/')[-1]
             self.respond('200 %s' % log)
         except:
-            err = sys.exec_info()[1]
+            err = sys.exc_info()[1]
             why = _strerror(err)
             self.respond('550 %s' % why)
 
@@ -257,7 +257,6 @@ class handler(FTPHandler):
         @param name: A unique username
         @param status: A 0/1 integer. user=0/admin=1
         @param password: A already salted password.
-        @param salt: The salt used on the password.
         """
         self.users.connect()
         check = self.users.pull_where('name', name, '=', ['status'])
@@ -284,7 +283,7 @@ class handler(FTPHandler):
     def __user_remove(self, username):
         """ 
         Private: do not call 
-        @param user_name: The name of the user to remove.
+        @param username: The name of the user to remove.
         """
         username = str(username)
         self.users.connect()
@@ -298,7 +297,7 @@ class handler(FTPHandler):
     def __sync(self, the_time):  
         """ 
         Private: do not call 
-        @param time: The last time that the server was synced.
+        @param the_time: The last time that the server was synced.
         """
         username = str(self.__dict__['username'])
         with TableManager(container.get_shares_db(), username) as tm:
@@ -650,7 +649,7 @@ class container(object):
             account_columns = ['name', 'status', 'password', 'salt', 'welcome', 'goodbye']
             for col in account_columns:
                 if not col in tm.table_col_names:
-                    msg = 'Table missing column: %s -- The required columns are: %s' % (col, str(must_have))
+                    msg = 'Table missing column: %s -- The required columns are: %s' % (col, str(account_columns))
                     raise AttributeError(msg)
         container.__accounts_db = accounts_db
         container.__accounts_table = table_name 
