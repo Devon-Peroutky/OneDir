@@ -42,7 +42,17 @@ class handler(FTPHandler):
         self.proto_cmds['SITE SETFLAG'] = {'auth':True, 'help':'SITE SETFLAG', 'perm':'e', 'arg':True}
         self.proto_cmds['SITE WHOAMI'] = {'auth':True, 'help':'SITE WHOAMI', 'perm':'r', 'arg':False}
         self.proto_cmds['SITE IAM'] = {'auth':True, 'help':'SITE IAM', 'perm':'e', 'arg':True}
-        self.proto_cmds['SITE SIGNUP'] ={'auth':False, 'help':'SITE SIGNUP <args>', 'perm':'', 'arg':True}        
+        self.proto_cmds['SITE SIGNUP'] ={'auth':False, 'help':'SITE SIGNUP <args>', 'perm':'', 'arg':True}
+        self.proto_cmds['SITE WORDS'] = {'auth': True, 'help':'SITE SIZE <args>', 'perm':'M', 'arg':True}
+
+    def ftp_SITE_WORDS(self, line):
+        try:
+            x = os.path.getsize(line)
+            self.respond('200 %s' % x)
+        except:
+            err = sys.exc_info()[1]
+            why = _strerror(err)
+            self.respond('550 ' + why)
 
     def ftp_SITE_USERADD(self, line):
         """
