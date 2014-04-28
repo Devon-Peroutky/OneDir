@@ -37,7 +37,6 @@ class ListenerContainer(object):
 
     @staticmethod
     def add_watch(path):
-        # print  '<<<<<<<<', path, '>>>>>>>>>'
         if path == '.':
             path = ListenerContainer.root_dir
         temp = ListenerContainer.watch_manager.add_watch(path, ListenerContainer.mask, rec=True)
@@ -79,7 +78,6 @@ class EventHandler(pyinotify.ProcessEvent):
         Raises a weird IOError while making a new document, because of some temp file that
         inotify is not picking up.  It seems safe to just ignore.
         """
-        # print 'create'
         try:
             if self.checks(event):
                 if ListenerContainer.is_syncing and not event.pathname[:2] == '.#':
@@ -89,8 +87,6 @@ class EventHandler(pyinotify.ProcessEvent):
                     else:
                         while True:
                             try:
-                                print 'create loop'
-                                #print 'in create'
                                 ListenerContainer.client.upload(event.pathname)
                                 break
                             except SocketError or error_reply:
@@ -104,11 +100,9 @@ class EventHandler(pyinotify.ProcessEvent):
                         x = [timer, 'UPLOAD', event.pathname]
                     ListenerContainer.sync_db.quick_push(x)
         except:
-            # print 'Error in create', event.pathname
             pass
 
     def process_IN_CLOSE_WRITE(self, event):
-        # print  'close write', event.pathname
         if self.checks(event):
             if ListenerContainer.is_syncing and not event.pathname[:2] == '.#':
                 if event.dir:
@@ -117,7 +111,6 @@ class EventHandler(pyinotify.ProcessEvent):
                 else:
                     while True:
                             try:
-                                print 'close write loop'
                                 ListenerContainer.client.upload(event.pathname)
                                 break
                             # except SocketError or error_reply:
@@ -125,7 +118,6 @@ class EventHandler(pyinotify.ProcessEvent):
                             except IOError:
                                 break
                             except not IOError as e:
-                                print e
                                 reset()
             else:
                 timer = now()
@@ -137,7 +129,6 @@ class EventHandler(pyinotify.ProcessEvent):
                 ListenerContainer.sync_db.quick_push(x)
 
     def process_IN_DELETE(self, event):
-        # print  'delete'
         try:
             if self.checks(event):
                 if ListenerContainer.is_syncing:
@@ -153,7 +144,6 @@ class EventHandler(pyinotify.ProcessEvent):
                         x = [timer, 'DELFILE', event.pathname]
                     ListenerContainer.add_watch(event.pathname)
         except:
-            # print  'Error in delete', event.pathname
             pass
 
     def process_IN_DELETE_SELF(self, event):
@@ -177,7 +167,6 @@ class EventHandler(pyinotify.ProcessEvent):
                 reset()
 
     def process_IN_MODIFY(self, event):
-        # print  'modify'
         if event.pathname == ListenerContainer.config:
             time.sleep(1)
             jd = open(event.pathname)
@@ -198,11 +187,9 @@ class EventHandler(pyinotify.ProcessEvent):
                     x = [timer, 'UPLOAD', event.pathname]
                     ListenerContainer.sync_db.quick_push(x)
             except:
-                # print 'Error in Modify', event.pathname
                 pass
 
     def process_IN_MOVED_FROM(self, event):
-        # print  'move from'
         try:
             if self.checks(event):
                 if ListenerContainer.is_syncing:
@@ -227,7 +214,6 @@ class EventHandler(pyinotify.ProcessEvent):
 
 
     def process_IN_MOVED_TO(self, event):
-        # print  'move to'
         ListenerContainer.move_to_folder = None
         ListenerContainer.move_to_file = None
         if ListenerContainer.is_syncing:
@@ -237,7 +223,6 @@ class EventHandler(pyinotify.ProcessEvent):
                 try:
                     ListenerContainer.client.move_to(event.pathname)
                 except:
-                    # print  'Correction in move too', event.pathname
                     try:
                         ListenerContainer.client.upload(event.pathname)
                     except:
@@ -252,13 +237,10 @@ class EventHandler(pyinotify.ProcessEvent):
 
 
     def process_default(self, event, to_append=None):
-        # print ListenerContainer.is_syncing
-        # ListenerContainer.print_w()
         if ListenerContainer.is_syncing:  # TODO I dont think that i will need to sync this.
             self.checks(event)
 
     def timeout(self, pathname):
-        # print  'timeout'
         if ListenerContainer.is_syncing:
             if ListenerContainer.move_to_folder == pathname:
                 try:
@@ -288,7 +270,6 @@ class EventHandler(pyinotify.ProcessEvent):
         Checks if the last command was a move from command.
         Checks if the file is a temp file.
         """
-        # # print  'checks'
         if ListenerContainer.is_syncing:
             if ListenerContainer.move_to_folder:
                 try:
@@ -341,7 +322,6 @@ class ReverseClient():
         self.is_rnfr = None
 
     def rc_SITE(self, line):
-        ## print  'site'
         self.rnfr_handler()
         arg = line.split(' ')[0]
         if arg in ['gettime', 'sync']:
@@ -349,26 +329,21 @@ class ReverseClient():
         return 'site', line
 
     def rc_MKD(self, line):
-        # print  'mkd'
         self.rnfr_handler()
         path = os.path.join(self.root_dir, line)
         os.mkdir(path)
 
     def rc_RNFR(self, line):
-        ## print  'rnfr'
         path = os.path.join(self.root_dir, line)
         self.is_rnfr = path
 
 
     def rc_RNTO(self, line):
-        ## print  'rnto'
-        ### print  self.root_dir, line
         path = os.path.join(self.root_dir, line)
         os.rename(self.is_rnfr, path)
         self.is_rnfr = None
 
     def rc_CWD(self, line):
-        ## print  'cwd'
         self.rnfr_handler()
         if line == '/':
             self.root_dir = os.getcwd()
@@ -376,7 +351,6 @@ class ReverseClient():
             self.root_dir = os.path.join(self.root_dir, line)
 
     def rc_STOR(self, line):
-        # print  'stor'
         self.rnfr_handler()
         path = os.path.join(self.root_dir, line)
         basename = os.path.split(path)[0]
@@ -393,32 +367,26 @@ class ReverseClient():
                         break
                     except error_perm:
                         time.sleep(1)
-                        print 'stuck'
             else:
                 ListenerContainer.client.download(path)
             filename = os.path.basename(path)
             os.rename(filename, path)
         except:
-            # print  'error in rc stor', line
             pass
         finally:
-            # print  path
             ListenerContainer.add_watch(basename)
 
     def rc_CDUP(self, line):
-        ## print  'cdup'
         self.rnfr_handler()
         self.root_dir = os.path.join(self.root_dir, '..')
         self.root_dir = os.path.abspath(self.root_dir)
 
     def rc_RMD(self, line):
-        ## print  'rmd'
         self.rnfr_handler()
         path = os.path.join(self.root_dir, line)
         rmtree(path)
 
     def rc_DELE(self, line):
-        ## print  'del'
         self.rnfr_handler()
         path = os.path.join(self.root_dir, line)
         os.remove(path)
@@ -432,35 +400,28 @@ class ForwardClient(object):
         self.mf = None
 
     def fc_ADDWATCH(self, path):
-        ## print  'addwatch'
         pass
 
     def fc_MKDIR(self, path):
-        ## print  'mkdir'
         self.check()
         ListenerContainer.client.mkdir(path)
 
     def fc_UPLOAD(self, path):
-        ## print  'upload'
         self.check()
         ListenerContainer.client.upload(path)
 
     def fc_DELFOLDER(self, path):
-        ## print  'del folder'
         self.check()
         ListenerContainer.client.delete_folder(path)
 
     def fc_DELEFILE(self, path):
-        ## print  'del file'
         self.check()
         ListenerContainer.client.delete_file(path)
 
     def fc_RMWATCH(self, path):
-        ## print  'rm watch'
         pass
 
     def fc_MOVEFROM(self, path):
-        ## print  'MOVEFROM'
         self.mf = path
         ListenerContainer.client.move_from(path)
 
@@ -483,7 +444,6 @@ def get_server_list(nick, last_sync):
     try:
         last_sync = int(last_sync)
     except ValueError:
-        print last_sync
         reset()
         last_sync = ListenerContainer.client.gettime()
         last_sync = int(last_sync)
@@ -491,7 +451,6 @@ def get_server_list(nick, last_sync):
         last_sync -= 3000000
     last_sync -= 1000000
     last_sync = str(last_sync)
-    # print last_sync, '<<'
     full = ListenerContainer.client.sync(last_sync)
     filtered = []
     for val in full:
@@ -511,18 +470,25 @@ def get_client_list():
 
 def merge_lists(server_list, client_list):
     st = 0
+    diff = 0
     while True:
         x = ""
-        try:
+        try:  # This could be source of errors... I don't know why this breaks.
             x = ListenerContainer.client.gettime()
             st = int(x)
             break
         except ValueError:
-            print x
+            pass
+    ###{{{
+    # IDEA: Move bellow up into try
+    # Get rid of while loop
+    # except diff = 0
+    # }}}###
     ct = datetime.now()
     ct = ct.strftime('%Y%m%d%H%M%S%f')
     ct = int(ct)
-    diff = st - ct
+    diff = st - ct  # This will make it resync the entire server if that error occurs
+    ###{{{{I have not tested this change}}}###
     merged_list = []
     while len(server_list) > 0 or len(client_list) > 0:
         if len(server_list) == 0:
@@ -546,7 +512,6 @@ def sync(merged_list, sync_dir):
     r = ReverseClient(sync_dir)
     f = ForwardClient()
     for val in merged_list:
-        # print  val
         cmd = None
         try:
             if len(val) == 5:
@@ -556,19 +521,16 @@ def sync(merged_list, sync_dir):
                 cmd = 'r.rc_%s("%s")' % (str(val[2]), line)
             else:
                 cmd = 'f.fc_%s("%s")' % (str(val[1]), str(val[2]))
-            # print  cmd
             eval(cmd)
         except error_reply or error_perm:
             reset()
             try:
                 eval(cmd)
             except:
-                print 'error reply in syc', cmd
                 if len(val) == 5:
                     pass
         except:
             reset()
-            print 'genereal error in sync', cmd
             pass
     f.check()
 
@@ -580,19 +542,13 @@ def checker():
         time.sleep(3)
         if not ListenerContainer.updating:
             counter = 0
-            print 'checker alive'
             try:
-                print 'in'
                 updater()
-                print 'out'
             except KeyboardInterrupt:
                 break
             except:
-                print 'ERROR IN CHECKER'
-                print sys.exc_info()
                 reset()
                 while True:
-                    print 'checker loop'
                     try:
                         x = ListenerContainer.client.who_am_i()
                         x = str(x).split(':')[1]
@@ -606,7 +562,6 @@ def checker():
                 # t.start()
             ListenerContainer.check_update = True
         else:
-            print 'recovering'
             try:
                 x = ListenerContainer.client.who_am_i()
                 x = str(x).split(':')[1]
@@ -620,40 +575,29 @@ def checker():
 
 
 def updater():
-    print 'updater'
     try:
         ListenerContainer.updating = True
         old_nick = ListenerContainer.client.who_am_i()
         old_nick = old_nick.split(':')[1]
         ListenerContainer.client.i_am('sync')
     except:
-        print 'stuck'
         reset()
         return
     while True:
-        print 'updater loop'
         try:
-            print 1
             start_sync = ListenerContainer.client.gettime()
-            print 2
             server_list = get_server_list(
                 ListenerContainer.nick,
                 ListenerContainer.last_sync
             )
-            print 3
             client_list = get_client_list()
-            print 4
             merged = merge_lists(server_list, client_list)
-            # print ListenerContainer.last_sync
             ListenerContainer.last_sync = start_sync
-            print 5
             if len(merged) == 0:
-                # print 'cleared'
                 break
             else:
                 sync(merged, ListenerContainer.root_dir)
         except error_reply or error_perm:
-            print 'error in updater'
             reset()
             ListenerContainer.updating = False
     ListenerContainer.client.i_am(ListenerContainer.nick)
@@ -703,8 +647,6 @@ def main(ip, port):
     conf['ip'] = ip
     conf['port'] = port
     ListenerContainer.login = conf
-    # print conf['nick']
-    # print type(conf['nick'])
     ListenerContainer.client = OneDirFtpClient(
         ip,
         port,
@@ -749,8 +691,6 @@ def main(ip, port):
             update_last_sync()
             break
         except not KeyboardInterrupt as e:
-            print '<<<<<<<<<<<< ERROR IN MAIN >>>>>>>>>>>>>>>>>>>>'
-            print e
             reset()
 
 if __name__ == '__main__':
