@@ -140,6 +140,7 @@ class TableRemover(SqlManager):
         @raises NameError: table not found
         """
         super(TableRemover, self).__init__(database_name)
+
         if not table_name in self.tables:
             raise NameError('Table ' + table_name + ' not in database')
         self._delete_table(table_name)
