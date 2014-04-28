@@ -8,9 +8,9 @@ Usage:
     onedir_runner.py client start <ip> [--port=<nu>]
     onedir_runner.py client sync [-o | --once]
     onedir_runner.py client signup <ip> [--port=<nu>] [(--user=<name> --password=<pw> --root=<path>)]
-    onedir_runner.py client setup <ip>[--port=<nu>][(--user=<name> --password=<pw> --root=<name>)]
-    onedir_runner.py client password [--password=<pw>]
+    onedir_runner.py client setup <ip> [--port=<nu>][(--user=<name> --password=<pw> --root=<name>)]
     onedir_runner.py client changepw <ip> <user> [--port=<nu>]
+    onedir_runner.py client deactivate <ip> [--port=<nu>]
     onedir_runner.py client admin report <ip> [--port=<nu>] [--user=<name>] [--write=<name>]
     onedir_runner.py client admin userinfo <ip> [--port=<nu>] [--user=<name>] [--write=<name>]
     onedir_runner.py client admin remove <ip> <user> [--port=<nu>]
@@ -424,6 +424,20 @@ def user_setup(ip, port=None, user=None, password=None, root=None): # TODO IP PO
             print 3
         except:
             print 'invalid credentials'
+def user_deactivate(ip, port=None, username=None, password=None, root=None):
+    conffile = os.path.expanduser('~') + '/.onedirclient'
+    conffile = os.path.join(conffile, 'client.json')
+    conffile = os.path.abspath(conffile)
+    jd = open(conffile)
+    conf = json.load(jd)
+    jd.close()
+    root = conf['root_dir']
+    password = conf['password']
+    nick = conf['nick']
+    port = 21
+    f = OneDirFtpClient(ip, port, username, nick, password, root)
+    f.deactivate_account()
+    os.remove(conffile)
 
 
 def user_set_password(ip, username=None, port=None):  # TODO IP PORT
@@ -518,7 +532,7 @@ if __name__ == '__main__':
             user_signup(args['<ip>'], args['--port'],  args['--user'], args['--password'], args['--root'])
         elif args['setup']:
             user_setup(args['<ip>'], args['--port'], args['--user'], args['--password'], args['--root'])
-        elif args['password']:
-            user_set_password(args['--password'])
         elif args['changepw']:
             user_set_password(args['<ip>'], args['<user>'], args['--port'])
+        elif args['deactivate']:
+            user_deactivate(args['<ip>'], args['--port'])
