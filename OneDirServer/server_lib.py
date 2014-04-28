@@ -302,7 +302,7 @@ class handler(FTPHandler):
         username = str(self.__dict__['username'])
         with TableManager(container.get_shares_db(), username) as tm:
             values = tm.pull_where('time', the_time, '>=')
-        return values 
+        return values
 
     def pre_process_command(self, line, cmd, arg):
         """

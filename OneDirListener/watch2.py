@@ -1,6 +1,7 @@
 import errno
 import pyinotify
 from datetime import datetime
+import sys
 from client import OneDirFtpClient
 from ftplib import error_perm, error_reply
 from threading import Timer, Thread
@@ -119,6 +120,8 @@ class EventHandler(pyinotify.ProcessEvent):
                                 break
                             except SocketError or error_reply:
                                 reset()
+                            except IOError:
+                                pass
             else:
                 timer = now()
                 if event.dir:
@@ -149,24 +152,24 @@ class EventHandler(pyinotify.ProcessEvent):
             pass
 
     def process_IN_DELETE_SELF(self, event):
-        if self.checks(event):
-            try:
+        try:
+            if self.checks(event):
                 if ListenerContainer.is_syncing:
                     if event.dir:
                         ListenerContainer.rm_watch(event.pathname)
                         ListenerContainer.client.delete_folder(event.pathname)
                     else:
                         ListenerContainer.client.delete_file(event.pathname)
-            except error_reply:
-                reset()
-            else:
-                timer = now()
-                if event.dir:
-                    ListenerContainer.rm_watch(event.pathname)
-                    x = [timer, 'DELFOLDER', event.pathname]
                 else:
-                    x = [timer, 'DELFILE', event.pathname]
-                ListenerContainer.add_watch(event.pathname)
+                    timer = now()
+                    if event.dir:
+                        ListenerContainer.rm_watch(event.pathname)
+                        x = [timer, 'DELFOLDER', event.pathname]
+                    else:
+                        x = [timer, 'DELFILE', event.pathname]
+                    ListenerContainer.add_watch(event.pathname)
+        except error_reply or error_perm:
+                reset()
 
     def process_IN_MODIFY(self, event):
         # print  'modify'
@@ -195,24 +198,27 @@ class EventHandler(pyinotify.ProcessEvent):
 
     def process_IN_MOVED_FROM(self, event):
         # print  'move from'
-        if self.checks(event):
-            if ListenerContainer.is_syncing:
-                if event.dir:
-                    ListenerContainer.move_to_folder = event.pathname
-                    ListenerContainer.rm_watch(event.pathname)
+        try:
+            if self.checks(event):
+                if ListenerContainer.is_syncing:
+                    if event.dir:
+                        ListenerContainer.move_to_folder = event.pathname
+                        ListenerContainer.rm_watch(event.pathname)
+                    else:
+                        ListenerContainer.move_to_file = event.pathname
+                    ListenerContainer.client.move_from(event.pathname)
                 else:
-                    ListenerContainer.move_to_file = event.pathname
-                ListenerContainer.client.move_from(event.pathname)
-            else:
-                timer = now()
-                if event.dir:
-                    ListenerContainer.rm_watch(event.pathname)
-                else:
-                    ListenerContainer.move_to_file = event.pathname
-                x = [timer, 'MOVEFROM', event.pathname]
-                ListenerContainer.sync_db.quick_push(x)
-            t = Timer(0.1, self.timeout, [event.pathname])
-            t.start()
+                    timer = now()
+                    if event.dir:
+                        ListenerContainer.rm_watch(event.pathname)
+                    else:
+                        ListenerContainer.move_to_file = event.pathname
+                    x = [timer, 'MOVEFROM', event.pathname]
+                    ListenerContainer.sync_db.quick_push(x)
+                t = Timer(0.1, self.timeout, [event.pathname])
+                t.start()
+        except error_perm or error_reply:
+            reset()
 
 
     def process_IN_MOVED_TO(self, event):
@@ -227,7 +233,10 @@ class EventHandler(pyinotify.ProcessEvent):
                     ListenerContainer.client.move_to(event.pathname)
                 except:
                     # print  'Correction in move too', event.pathname
-                    ListenerContainer.client.upload(event.pathname)
+                    try:
+                        ListenerContainer.client.upload(event.pathname)
+                    except:
+                        reset()
         else:
             timer = now()
             if event.dir:
@@ -238,8 +247,8 @@ class EventHandler(pyinotify.ProcessEvent):
 
 
     def process_default(self, event, to_append=None):
-        print ListenerContainer.is_syncing
-        print ListenerContainer.print_w()
+        # print ListenerContainer.is_syncing
+        # ListenerContainer.print_w()
         if ListenerContainer.is_syncing:  # TODO I dont think that i will need to sync this.
             self.checks(event)
 
@@ -466,9 +475,18 @@ class ForwardClient(object):
 
 
 def get_server_list(nick, last_sync):
-    last_sync = int(last_sync)
+    try:
+        last_sync = int(last_sync)
+    except ValueError:
+        print last_sync
+        reset()
+        last_sync = ListenerContainer.client.gettime()
+        last_sync = int(last_sync)
+        ListenerContainer.last_sync = last_sync
+        last_sync -= 3000000
     last_sync -= 1000000
     last_sync = str(last_sync)
+    # print last_sync, '<<'
     full = ListenerContainer.client.sync(last_sync)
     filtered = []
     for val in full:
@@ -487,7 +505,15 @@ def get_client_list():
 
 
 def merge_lists(server_list, client_list):
-    st = int(ListenerContainer.client.gettime())
+    st = 0
+    while True:
+        x = ""
+        try:
+            x = ListenerContainer.client.gettime()
+            st = int(x)
+            break
+        except ValueError:
+            print x
     ct = datetime.now()
     ct = ct.strftime('%Y%m%d%H%M%S%f')
     ct = int(ct)
@@ -527,7 +553,7 @@ def sync(merged_list, sync_dir):
                 cmd = 'f.fc_%s("%s")' % (str(val[1]), str(val[2]))
             # print  cmd
             eval(cmd)
-        except error_reply:
+        except error_reply or error_perm:
             reset()
             try:
                 eval(cmd)
@@ -536,23 +562,52 @@ def sync(merged_list, sync_dir):
                 if len(val) == 5:
                     pass
         except:
+            reset()
             print 'genereal error in sync', cmd
             pass
     f.check()
 
 
 def checker():
+    counter = 0
     while ListenerContainer.is_checking:
+        time.sleep(3)
         if not ListenerContainer.updating:
-            time.sleep(5)
+            counter = 0
+            print 'checker alive'
             try:
                 updater()
             except KeyboardInterrupt:
                 break
-            except not KeyboardInterrupt:
-                print 'error in checker'
+            except:
+                print 'ERROR IN CHECKER'
+                print sys.exc_info()
                 reset()
+                while True:
+                    try:
+                        x = ListenerContainer.client.who_am_i()
+                        x = str(x).split(':')[1]
+                        if x == 'sync':
+                            ListenerContainer.client.i_am(ListenerContainer.nick)
+                        break
+                    except:
+                        pass
+                ListenerContainer.updating = False
+                # t = Thread(target=checker, name='checker', args=())
+                # t.start()
             ListenerContainer.check_update = True
+        else:
+            print 'recovering'
+            try:
+                x = ListenerContainer.client.who_am_i()
+                x = str(x).split(':')[1]
+                if x == 'sync':
+                    ListenerContainer.client.i_am(ListenerContainer.nick)
+            except:
+                pass
+            counter += 1
+            if counter == 3:
+                ListenerContainer.updating = False
 
 
 def updater():
@@ -569,16 +624,17 @@ def updater():
             )
             client_list = get_client_list()
             merged = merge_lists(server_list, client_list)
-            print ListenerContainer.last_sync
+            # print ListenerContainer.last_sync
             ListenerContainer.last_sync = start_sync
             if len(merged) == 0:
-                print 'cleared'
+                # print 'cleared'
                 break
             else:
                 sync(merged, ListenerContainer.root_dir)
-        except error_reply:
+        except error_reply or error_perm:
             print 'error in updater'
             reset()
+            ListenerContainer.updating = False
     ListenerContainer.client.i_am(old_nick)
     ListenerContainer.updating = False
 
@@ -587,15 +643,19 @@ def now():
     x = datetime.now()
     return x.strftime('%Y%m%d%H%M%S%f')
 
+
 def reset():
-    ListenerContainer.client = OneDirFtpClient(
-        ListenerContainer.login['ip'],
-        ListenerContainer.login['port'],
-        ListenerContainer.login['username'],
-        ListenerContainer.login['nick'],
-        ListenerContainer.login['password'],
-        ListenerContainer.login['root_dir']
-    )
+    try:
+        ListenerContainer.client.sendcmd('noop')
+    except:
+        ListenerContainer.client = OneDirFtpClient(
+            ListenerContainer.login['ip'],
+            ListenerContainer.login['port'],
+            ListenerContainer.login['username'],
+            ListenerContainer.login['nick'],
+            ListenerContainer.login['password'],
+            ListenerContainer.login['root_dir']
+        )
 
 
 def update_last_sync():
@@ -603,7 +663,7 @@ def update_last_sync():
     conf = '%s/.onedirclient/client.json' % conf
     jd = open(conf, 'r')
     data = json.load(jd)
-    data['last_syncing'] = ListenerContainer.last_sync
+    data['last_sync'] = ListenerContainer.last_sync
     jd.close()
     with open(conf, 'w') as w:
         json.dump(data, w)
@@ -622,8 +682,8 @@ def main(ip, port):
     conf['ip'] = ip
     conf['port'] = port
     ListenerContainer.login = conf
-    print conf['nick']
-    print type(conf['nick'])
+    # print conf['nick']
+    # print type(conf['nick'])
     ListenerContainer.client = OneDirFtpClient(
         ip,
         port,
@@ -641,7 +701,9 @@ def main(ip, port):
     ListenerContainer.add_watch(conf['root_dir'])
     ListenerContainer.last_sync = conf['last_sync']
     ListenerContainer.add_config(conffile)
-    ListenerContainer.sync_db = TableManager('/home/justin/.onedirclient/sync.db', 'local')
+    db = os.path.expanduser('~')
+    db = db + '/.onedirclient/sync.db'
+    ListenerContainer.sync_db = TableManager(db, 'local')
     if not conf['is_syncing']:
         ListenerContainer.sync_db.connect()
     while True:
@@ -669,5 +731,5 @@ def main(ip, port):
             reset()
 
 if __name__ == '__main__':
-    print  'DONT FOR GET TO SET IP... this is mine!'
+    print 'DONT FOR GET TO SET IP... this is mine!'
     main('10.0.0.5', 1024)

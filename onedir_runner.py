@@ -8,7 +8,7 @@ Usage:
     onedir_runner.py client start <ip> [--port=<nu>]
     onedir_runner.py client sync [-o | --once]
     onedir_runner.py client signup <ip> [--port=<nu>] [(--user=<name> --password=<pw> --root=<path>)]
-    onedir_runner.py client setup [(--user=<name> --password=<pw> --nick=<name>)]
+    onedir_runner.py client setup <ip>[--port=<nu>][(--user=<name> --password=<pw> --root=<name>)]
     onedir_runner.py client password [--password=<pw>]
     onedir_runner.py client admin report <ip> [--port=<nu>] [--user=<name>] [--write=<name>]
     onedir_runner.py client admin userinfo <ip> [--port=<nu>] [--user=<name>] [--write=<name>]
@@ -43,6 +43,7 @@ from OneDirServer.hash_chars import gen_hash, gen_salt
 from OneDirServer.server_lib import authorizer, handler, container
 from OneDirListener.watch2 import ListenerContainer, main
 from OneDirListener.user_signup import main as signup
+from uuid import getnode as get_mac
 
 __author__ = 'Justin'
 #  TODO I have added a few things to this without testing them
@@ -391,44 +392,35 @@ def get_admin(ip, port):  # TODO not started
 
 
 def user_signup(ip, port=None, user=None, password=None, root=None):
-    # if not port:
-    #     port = 21
-    # na = OneDirNoAuthClient(ip, port)
-    # rep = None
-    # if not user:
-    #     while True:
-    #         username = raw_input('Please select a username: ')
-    #         rep = na.user_sign_up(username)
-    #         if rep == 'False':
-    #             print 'Sorry %s is taken' % username
-    #         else:
-    #             break
-    # na.ftp.close()
-    # na.ftp.quit()
-    # del na
-    # fc = OneDirFtpClient(ip, port, user, 'signingup', rep, os.getcwd())
-    # if not password:
-    #     while True:
-    #         first = getpass('Please enter a password: ')
-    #         second = getpass('Re-enter password: ')
-    #         if first == second:
-    #             password = first
-    #             break
-    #         else:
-    #             print 'Sorry passwords did not match, try again.'
-    # fc.set_password(password, rep)
-    # fc.close()
-    # fc.quit()
     signup(ip, port, user, password, root)
-    # TODO This should write a user setup file. Too
-    # Generate a Nick. 
     print 'User created successfully'
 
 
-def user_setup(user=None, password=None, nick=None): # TODO IP PORT
-    # The reaso that we needed is that a user can have an account on another computer.
-    # I might want to generate a Nick instead of letting them choose one.
-    pass
+def user_setup(ip, port=None, user=None, password=None, root=None): # TODO IP PORT
+    if not user:
+        print 'TODO'
+    else:
+        try:
+            nick = get_mac()
+            f = OneDirFtpClient(ip, 21, user, nick, password, root)
+            data = {"username": user, "root_dir": root, "nick": str(nick),
+                "is_syncing": True, "password": password, 'last_sync': "0"}
+            path = os.path.expanduser('~') + '/.onedirclient/client.json'
+            conf_folder = os.path.expanduser('~') +'/.onedirclient'
+            if not os.path.exists(conf_folder):
+                os.mkdir(conf_folder)
+            with open(path, 'w') as filename:
+                json.dump(data, filename)
+            ftpclient = OneDirFtpClient(ip, port, user, nick, password, root)
+            db = conf_folder + '/sync.db'
+            ta = TableAdder(db, 'local')
+            ta.add_column('time')
+            ta.add_column('cmd')
+            ta.add_column('line')
+            ta.commit()
+            print 3
+        except:
+            print 'invalid credintials'
 
 
 def user_set_password(password=None):  # TODO IP PORT
@@ -509,8 +501,8 @@ if __name__ == '__main__':
         elif args['sync']:
             switch_sync(args['--once'])
         elif args['signup']:
-            user_signup(args['<ip>'], args['--port'], args['--user'], args['--password'], args['--root'])
+            user_signup(args['<ip>'], args['--port'],  args['--user'], args['--password'], args['--root'])
         elif args['setup']:
-            user_setup(args['--user'], args['--password'], args['--nick'])
+            user_setup(args['<ip>'], args['--port'], args['--user'], args['--password'], args['--root'])
         elif args['password']:
             user_set_password(args['--password'])
