@@ -89,6 +89,7 @@ class EventHandler(pyinotify.ProcessEvent):
                     else:
                         while True:
                             try:
+                                print 'create loop'
                                 #print 'in create'
                                 ListenerContainer.client.upload(event.pathname)
                                 break
@@ -116,12 +117,16 @@ class EventHandler(pyinotify.ProcessEvent):
                 else:
                     while True:
                             try:
+                                print 'close write loop'
                                 ListenerContainer.client.upload(event.pathname)
                                 break
-                            except SocketError or error_reply:
-                                reset()
+                            # except SocketError or error_reply:
+                            #     reset()
                             except IOError:
-                                pass
+                                break
+                            except not IOError as e:
+                                print e
+                                reset()
             else:
                 timer = now()
                 if event.dir:
@@ -168,7 +173,7 @@ class EventHandler(pyinotify.ProcessEvent):
                     else:
                         x = [timer, 'DELFILE', event.pathname]
                     ListenerContainer.add_watch(event.pathname)
-        except error_reply or error_perm:
+        except:
                 reset()
 
     def process_IN_MODIFY(self, event):
@@ -571,12 +576,15 @@ def sync(merged_list, sync_dir):
 def checker():
     counter = 0
     while ListenerContainer.is_checking:
+        ListenerContainer.print_w()
         time.sleep(3)
         if not ListenerContainer.updating:
             counter = 0
             print 'checker alive'
             try:
+                print 'in'
                 updater()
+                print 'out'
             except KeyboardInterrupt:
                 break
             except:
@@ -584,6 +592,7 @@ def checker():
                 print sys.exc_info()
                 reset()
                 while True:
+                    print 'checker loop'
                     try:
                         x = ListenerContainer.client.who_am_i()
                         x = str(x).split(':')[1]
@@ -591,7 +600,7 @@ def checker():
                             ListenerContainer.client.i_am(ListenerContainer.nick)
                         break
                     except:
-                        pass
+                        reset()
                 ListenerContainer.updating = False
                 # t = Thread(target=checker, name='checker', args=())
                 # t.start()
@@ -611,21 +620,33 @@ def checker():
 
 
 def updater():
-    ListenerContainer.updating = True
-    old_nick = ListenerContainer.client.who_am_i()
-    old_nick = old_nick.split(':')[1]
-    ListenerContainer.client.i_am('sync')
+    print 'updater'
+    try:
+        ListenerContainer.updating = True
+        old_nick = ListenerContainer.client.who_am_i()
+        old_nick = old_nick.split(':')[1]
+        ListenerContainer.client.i_am('sync')
+    except:
+        print 'stuck'
+        reset()
+        return
     while True:
+        print 'updater loop'
         try:
+            print 1
             start_sync = ListenerContainer.client.gettime()
+            print 2
             server_list = get_server_list(
                 ListenerContainer.nick,
                 ListenerContainer.last_sync
             )
+            print 3
             client_list = get_client_list()
+            print 4
             merged = merge_lists(server_list, client_list)
             # print ListenerContainer.last_sync
             ListenerContainer.last_sync = start_sync
+            print 5
             if len(merged) == 0:
                 # print 'cleared'
                 break
@@ -635,7 +656,7 @@ def updater():
             print 'error in updater'
             reset()
             ListenerContainer.updating = False
-    ListenerContainer.client.i_am(old_nick)
+    ListenerContainer.client.i_am(ListenerContainer.nick)
     ListenerContainer.updating = False
 
 
@@ -708,9 +729,10 @@ def main(ip, port):
         ListenerContainer.sync_db.connect()
     while True:
         try:
-            notifier.process_events()
-            if notifier.check_events():
-                notifier.read_events()
+            # notifier.process_events()
+            # if notifier.check_events():
+            #     notifier.read_events()
+            notifier.loop()
         except KeyboardInterrupt:
             if ListenerContainer.move_to_folder:
                 try:
@@ -726,8 +748,9 @@ def main(ip, port):
             notifier.stop()
             update_last_sync()
             break
-        except not KeyboardInterrupt:
-            print 'error caught in main'
+        except not KeyboardInterrupt as e:
+            print '<<<<<<<<<<<< ERROR IN MAIN >>>>>>>>>>>>>>>>>>>>'
+            print e
             reset()
 
 if __name__ == '__main__':

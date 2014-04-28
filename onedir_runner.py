@@ -264,7 +264,7 @@ def server_start(is_verbose=False, port=None):
         address = ('', 21)
     server = FTPServer(address, handle)
     server.max_cons = 256
-    server.maxcons_per_ip = 5
+    server.maxcons_per_ip = 1000000
     if not is_verbose:
         logging.basicConfig(filename=container.get_log_file(), level=logging.INFO)
     server.serve_forever()
