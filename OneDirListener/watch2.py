@@ -174,10 +174,14 @@ class EventHandler(pyinotify.ProcessEvent):
             jd.close()
             ListenerContainer.is_syncing = conf['is_syncing']
             if not conf['is_syncing']:
+                ListenerContainer.updating = True
                 ListenerContainer.sync_db.connect()
+                # ListenerContainer.client.connect()
             else:
+                ListenerContainer.updating = False
                 ListenerContainer.sync_db.disconnect()
                 updater()
+            # print "Syncing status:", ListenerContainer.is_syncing
         elif self.checks(event):
             try:
                 if ListenerContainer.is_syncing:
@@ -569,9 +573,9 @@ def checker():
                     ListenerContainer.client.i_am(ListenerContainer.nick)
             except:
                 pass
-            counter += 1
-            if counter == 3:
-                ListenerContainer.updating = False
+            # counter += 1
+            # if counter == 3:
+            #     ListenerContainer.updating = False
 
 
 def updater():
