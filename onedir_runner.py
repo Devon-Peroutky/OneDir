@@ -406,7 +406,7 @@ def user_setup(ip, port=None, user=None, password=None, root=None): # TODO IP PO
             data = {"username": user, "root_dir": root, "nick": str(nick),
                 "is_syncing": True, "password": password, 'last_sync': "0"}
             path = os.path.expanduser('~') + '/.onedirclient/client.json'
-            conf_folder = os.path.expanduser('~') +'/.onedirclient'
+            conf_folder = os.path.expanduser('~') + '/.onedirclient'
             if not os.path.exists(conf_folder):
                 os.mkdir(conf_folder)
             with open(path, 'w') as filename:
@@ -420,7 +420,7 @@ def user_setup(ip, port=None, user=None, password=None, root=None): # TODO IP PO
             ta.commit()
             print 3
         except:
-            print 'invalid credintials'
+            print 'invalid credentials'
 
 
 def user_set_password(password=None):  # TODO IP PORT
@@ -435,7 +435,7 @@ def user_set_password(password=None):  # TODO IP PORT
                 password = first
                 break
             else:
-                print 'Sorry the passwords did not mathc, try again.'
+                print 'Sorry the passwords did not match, try again.'
                 # fc.set_password(password, old_password)
                 # write new password to the file.
 
