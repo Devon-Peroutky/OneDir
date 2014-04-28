@@ -328,7 +328,7 @@ def server_start_testing(is_verbose=False, port=None):
 ###{{{[start] Untested }}}###
 def admin_report(ip, port, username=None, write=None):
     ad = get_admin(ip, port)
-    ret = ad.report(username)
+    ret = ad.report()
     if write:
         with open(write, 'w') as w:
             w.write(ret)
@@ -365,7 +365,7 @@ def admin_remove(ip, port, username):
         ad.user_del(username)
         print '%s deleted sucessfully.' % username
     except:
-        print '%s was not found in database, delete failed'
+        print '%s was not found in database, delete failed' % username
 
 
 def admin_change_password(ip, port, username, password):
@@ -379,11 +379,14 @@ def admin_change_password(ip, port, username, password):
 
 def admin_getlog(ip, port):
     ad = get_admin(ip, port)
-    ad.get_log()
+    # print ad.get_log()
+    with open(ad.get_log(),'r') as f:
+        output = f.read()
+    print output
 
 
 def get_admin(ip, port):  # TODO not started
-    conf = os.path.expanduser('~') + '/.onedirclient'
+    conf = os.path.expanduser('~') + '/.onedirclient/client.json'
     jd = open(conf)
     conf = json.load(jd)
     jd.close()
@@ -443,7 +446,7 @@ def user_set_password(password=None):  # TODO IP PORT
                 password = first
                 break
             else:
-                print 'Sorry the passwords did not mathc, try again.'
+                print 'Sorry the passwords did not match, try again.'
                 # fc.set_password(password, old_password)
                 # write new password to the file.
 
@@ -494,6 +497,7 @@ if __name__ == '__main__':
         if args['admin']:
             if not args['--port']:
                 args['--port'] = 21
+                args['port'] = 21
             if args['report']:
                 admin_report(args['<ip>'], args['port'], args['--user'], args['--write'])
             elif args['userinfo']:

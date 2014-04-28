@@ -593,6 +593,10 @@ def main(ip, port):
     conffile = os.path.expanduser('~') + '/.onedirclient'
     conffile = os.path.join(conffile, 'client.json')
     conffile = os.path.abspath(conffile)
+
+    # ------------------- DELETE ME -----------------
+    print "Configuration File: " + str(conffile)
+    # -----------------------------------------------
     jd = open(conffile)
     conf = json.load(jd)
     jd.close()
@@ -615,7 +619,10 @@ def main(ip, port):
     notifier = pyinotify.Notifier(ListenerContainer.watch_manager, EventHandler())
     ListenerContainer.add_watch(conf['root_dir'])
     ListenerContainer.add_config(conffile)
-    ListenerContainer.sync_db = TableManager('/home/justin/.onedirclient/sync.db', 'local')
+
+    # ---------- CHANGE ubuntu BACK TO justin
+    print "Watching: " + str(ListenerContainer.root_dir)
+    ListenerContainer.sync_db = TableManager('/home/ubuntu/.onedirclient/sync.db', 'local')
     if not conf['is_syncing']:
         ListenerContainer.sync_db.connect()
     while True:
@@ -643,4 +650,4 @@ def main(ip, port):
 
 if __name__ == '__main__':
     print  'DONT FOR GET TO SET IP... this is mine!'
-    main('10.0.0.5', 1024)
+    main('127.0.01', 21)

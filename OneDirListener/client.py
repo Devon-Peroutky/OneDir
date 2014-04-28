@@ -1,6 +1,6 @@
 import os
 from ftplib import *
-from OneDirListener.callback import Callback
+from callback import Callback
 
 
 __author__ = 'Justin Jansen'
@@ -44,6 +44,11 @@ class OneDirFtpClient(FTP):
         @param password:  The user's password
         @param root_dir: The local directory of the OneDir files
         """
+        
+        print 
+        print "Logging in... (Admin: "+str(user)+", Password: "+str(password) + ")"
+        print 
+
         FTP.__init__(self)
         self.connect(host, port)
         self.login(user, password)
@@ -251,7 +256,8 @@ class OneDirAdminClient(OneDirFtpClient):
         log_loc = log_loc.split(' ')[1]
         filename = 'server.log'
         with open(filename, 'wb') as w:
-            return self.retrbinary('retr %s' % log_loc, lambda x: w.write(x))
+            self.retrbinary('retr %s' % log_loc, lambda x: w.write(x))
+        return filename
 
     def get_user_list(self):
         """
