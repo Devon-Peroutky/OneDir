@@ -174,10 +174,14 @@ class EventHandler(pyinotify.ProcessEvent):
             jd.close()
             ListenerContainer.is_syncing = conf['is_syncing']
             if not conf['is_syncing']:  # TODO get rup changes.
+                ListenerContainer.updating = True
                 ListenerContainer.sync_db.connect()
+                # ListenerContainer.client.connect()
             else:
+                ListenerContainer.updating = False
                 ListenerContainer.sync_db.disconnect()
                 updater()
+            # print "Syncing status:", ListenerContainer.is_syncing
         elif self.checks(event):
             try:
                 if ListenerContainer.is_syncing:
@@ -543,7 +547,7 @@ def sync(merged_list, sync_dir):
 def checker():
     counter = 0
     while ListenerContainer.is_checking:
-        ListenerContainer.print_w()
+        # ListenerContainer.print_w()
         time.sleep(3)
         if not ListenerContainer.updating:
             counter = 0
@@ -574,10 +578,9 @@ def checker():
                     ListenerContainer.client.i_am(ListenerContainer.nick)
             except:  # TODO
                 reset()
-                # pass
-            counter += 1
-            if counter == 3:
-                ListenerContainer.updating = False
+            # counter += 1
+            # if counter == 3:
+            #     ListenerContainer.updating = False
 
 
 def updater():

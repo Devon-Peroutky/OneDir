@@ -7,7 +7,6 @@ __author__ = 'Justin Jansen'
 __status__ = 'Testing'
 __date__ = '03/29/14'
 
-
 class OneDirNoAuthClient(object):
     def __init__(self, host, port):
         self.ftp = FTP()
@@ -166,14 +165,14 @@ class OneDirFtpClient(FTP):
         """
         self.sendcmd('site deactiv')
 
-    def set_password(self, new_pw, old_pw):
+    def set_password(self, old_pw, new_pw):
         """
         Changes the users password. Won't deactivate session.
         No need to log out and back in.  
         @param new_pw: plain text new password.
         @param old_pw: plain text old password. 
         """
-        self.sendcmd('site setpw %s %s' % (new_pw, old_pw))
+        self.sendcmd('site setpw %s %s' % (old_pw, new_pw))
 
     def set_sync_flag(self, arg, arg_two=None):  # Untested
         """ 
@@ -241,7 +240,7 @@ class OneDirAdminClient(OneDirFtpClient):
         Completely deletes a user from the server.
         @param username: The username to delete.
         """
-        self.sendcmd('site userdel' % username)
+        self.sendcmd('site userdel %s' % username)
 
     def get_log(self):
         """
@@ -251,7 +250,8 @@ class OneDirAdminClient(OneDirFtpClient):
         log_loc = log_loc.split(' ')[1]
         filename = 'server.log'
         with open(filename, 'wb') as w:
-            return self.retrbinary('retr %s' % log_loc, lambda x: w.write(x))
+            self.retrbinary('retr %s' % log_loc, lambda x: w.write(x))
+        return filename
 
     def get_user_list(self):
         """
@@ -270,3 +270,47 @@ class OneDirAdminClient(OneDirFtpClient):
         @param password: the password to change it too.
         """
         self.sendcmd('site changepw %s %s' % (username, password))
+
+    def size(self, file_name): 
+        x = self.sendcmd('site words %s' % file_name)
+        size = float(str(x).split(' ')[1])
+        return size
+
+    def __count_files(self, server_path, x, count):
+        """ 
+        Recursive folder counter, do not call.
+        """
+        helper = Callback()
+        self.dir(server_path, helper.file_folder_separator)
+        for f in helper.folders:
+            y = self.__count_files('%s/%s' % (server_path, f), x, count)
+        for f in helper.files:
+            count+=1
+            x += self.size('%s/%s' % (server_path, f))
+        #print str(server_path)+": ("+str(count)+", "+str(x)+")"
+        return (count, x)
+
+    def count_files(self, folder_name):
+        """
+        Gets the number and size of files for a user from the server.
+
+        @param folder_name: The path and folder name to delete
+        """
+        print 
+        totalCount=0
+        totalSpace=0
+
+        on_server = os.path.relpath('.', self.root_dir)
+        for user in self.get_user_list():
+            x = self.__count_files('./%s' % (user[0]), 0.0, 0) 
+            totalCount += x[0]
+            totalSpace += x[1]
+            print user[0]+": (Files: "+str(x[0])+", Space: "+str(x[1])+" bytes)"
+        print "--------------------------------------"
+        print "Total: (Files: "+str(totalCount)+", Space: "+str(totalSpace)+" bytes)"
+        print 
+
+        #print "Total: (Number of Files: "+str(x[0])+", Total Space: "+str(x[1]) + ")"
+        return True
+
+

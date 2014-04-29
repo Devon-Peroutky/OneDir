@@ -92,6 +92,7 @@ def root_check(root_dir):
                 if rep in ['y', 'ye', 'yes']:
                     rmtree(root_dir)
                     os.mkdir(root_dir)
+                    break
                 elif rep in ['n', 'no', '']:
                     print 'Aborting.'
                     sys.exit(1)

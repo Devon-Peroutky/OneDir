@@ -8,8 +8,9 @@ Usage:
     onedir_runner.py client start <ip> [--port=<nu>]
     onedir_runner.py client sync [-o | --once]
     onedir_runner.py client signup <ip> [--port=<nu>] [(--user=<name> --password=<pw> --root=<path>)]
-    onedir_runner.py client setup <ip>[--port=<nu>][(--user=<name> --password=<pw> --root=<name>)]
-    onedir_runner.py client password [--password=<pw>]
+    onedir_runner.py client setup <ip> [--port=<nu>][(--user=<name> --password=<pw> --root=<name>)]
+    onedir_runner.py client changepw <ip> <user> [--port=<nu>]
+    onedir_runner.py client deactivate <ip> [--port=<nu>]
     onedir_runner.py client admin report <ip> [--port=<nu>] [--user=<name>] [--write=<name>]
     onedir_runner.py client admin userinfo <ip> [--port=<nu>] [--user=<name>] [--write=<name>]
     onedir_runner.py client admin remove <ip> <user> [--port=<nu>]
@@ -43,6 +44,7 @@ from OneDirServer.hash_chars import gen_hash, gen_salt
 from OneDirServer.server_lib import authorizer, handler, container
 from OneDirListener.watch2 import ListenerContainer, main
 from OneDirListener.user_signup import main as signup
+from OneDirListener.user_change_pw import main as user_changepw
 from uuid import getnode as get_mac
 
 __author__ = 'Justin'
@@ -329,7 +331,7 @@ def server_start_testing(is_verbose=False, port=None):
 ###{{{[start] Untested }}}###
 def admin_report(ip, port, username=None, write=None):
     ad = get_admin(ip, port)
-    ret = ad.report(username)
+    ret = ad.report()
     if write:
         with open(write, 'w') as w:
             w.write(ret)
@@ -364,9 +366,10 @@ def admin_remove(ip, port, username):
     ad = get_admin(ip, port)
     try:
         ad.user_del(username)
-        print '%s deleted sucessfully.' % username
-    except:
-        print '%s was not found in database, delete failed'
+        #print '%s deleted sucessfully.' % username
+    except Exception as e:
+        print e
+        print '%s was not found in database, delete failed' % username
 
 
 def admin_change_password(ip, port, username, password):
@@ -381,11 +384,14 @@ def admin_change_password(ip, port, username, password):
 
 def admin_getlog(ip, port):
     ad = get_admin(ip, port)
-    ad.get_log()
+    #ad.get_log()
+    with open(ad.get_log(), 'r') as f:
+        output = f.read()
+    print output
 
 
 def get_admin(ip, port):  # TODO not started
-    conf = os.path.expanduser('~') + '/.onedirclient'
+    conf = os.path.expanduser('~') + '/.onedirclient/client.json'
     jd = open(conf)
     conf = json.load(jd)
     jd.close()
@@ -403,16 +409,18 @@ def user_setup(ip, port=None, user=None, password=None, root=None): # TODO IP PO
     else:
         try:
             nick = get_mac()
-            f = OneDirFtpClient(ip, 21, user, nick, password, root)
             data = {"username": user, "root_dir": root, "nick": str(nick),
                 "is_syncing": True, "password": password, 'last_sync': "0"}
             path = os.path.expanduser('~') + '/.onedirclient/client.json'
-            conf_folder = os.path.expanduser('~') +'/.onedirclient'
+            conf_folder = os.path.expanduser('~') + '/.onedirclient'
             if not os.path.exists(conf_folder):
                 os.mkdir(conf_folder)
             with open(path, 'w') as filename:
                 json.dump(data, filename)
-            ftpclient = OneDirFtpClient(ip, port, user, nick, password, root)
+            watch_folder = os.path.expanduser('~') + '/OneDirFiles'
+            if not os.path.exists(watch_folder):
+                os.mkdir(watch_folder)
+            # ftpclient = OneDirFtpClient(ip, port, user, nick, password, root)
             db = conf_folder + '/sync.db'
             ta = TableAdder(db, 'local')
             ta.add_column('time')
@@ -421,24 +429,53 @@ def user_setup(ip, port=None, user=None, password=None, root=None): # TODO IP PO
             ta.commit()
             print 3
         except:
-            print 'invalid credintials'
+            print 'invalid credentials'
 
 
-def user_set_password(password=None):  # TODO IP PORT
-    # from setup file get username and passowrd. 
+def user_deactivate(ip, port=None, username=None, password=None, root=None):
+    folderpath = os.path.expanduser('~') + '/.onedirclient'
+    conffile = os.path.join(folderpath, 'client.json')
+    conffile = os.path.abspath(conffile)
+    jd = open(conffile)
+    conf = json.load(jd)
+    jd.close()
+    username = conf['username']
+    root = conf['root_dir']
+    password = conf['password']
+    nick = conf['nick']
+    port = 21
+    f = OneDirFtpClient(ip, port, username, nick, password, root)
+    f.deactivate_account()
+    # os.remove(conffile)
+    rmtree(folderpath)
+
+
+def user_set_password(ip, username=None, port=None):  # TODO IP PORT
+    # from setup file get username and password.
     # fc = OneDirClient( ... )
     # old_password = password from files.
-    if not password:
-        while True:
-            first = getpass('Please enter a password: ')
-            second = getpass('Re-enter password: ')
-            if first == second:
-                password = first
-                break
-            else:
-                print 'Sorry the passwords did not mathc, try again.'
-                # fc.set_password(password, old_password)
-                # write new password to the file.
+    # if not password:
+    #     while True:
+    #         first = getpass('Please enter a password: ')
+    #         second = getpass('Re-enter password: ')
+    #         if first == second:
+    #             password = first
+    #             break
+    #         else:
+    #             print 'Sorry the passwords did not match, try again.'
+    #             # fc.set_password(password, old_password)
+    #             # write new password to the file.
+    conffile = os.path.expanduser('~') + '/.onedirclient'
+    conffile = os.path.join(conffile, 'client.json')
+    conffile = os.path.abspath(conffile)
+    jd = open(conffile)
+    conf = json.load(jd)
+    jd.close()
+    root_dir = conf['root_dir']
+    password = conf['password']
+    nick = conf['nick']
+    port = 21
+    user_changepw(ip, port, username, nick, password, root_dir)
 
 
 def start_client(ip, port=None):
@@ -487,16 +524,17 @@ if __name__ == '__main__':
         if args['admin']:
             if not args['--port']:
                 args['--port'] = 21
+                args['port'] = 21
             if args['report']:
                 admin_report(args['<ip>'], args['port'], args['--user'], args['--write'])
             elif args['userinfo']:
                 admin_user_info(args['<ip>'], args['port'], args['--user'], args['--write'])
             elif args['remove']:
-                admin_remove(args['<ip>'], args['port'], args['<user>'])
+                admin_remove(args['<ip>'], args['--port'], args['<user>'])
             elif args['changepw']:
-                admin_change_password(args['<ip>'], args['port'], args['<user>'], args['<password>'])
+                admin_change_password(args['<ip>'], args['--port'], args['<user>'], args['<password>'])
             elif args['getlog']:
-                admin_getlog(args['<ip>'], args['port'], )
+                admin_getlog(args['<ip>'], args['port'])
         elif args['start']:
             start_client(args['<ip>'], args['--port'])
         elif args['sync']:
@@ -505,5 +543,7 @@ if __name__ == '__main__':
             user_signup(args['<ip>'], args['--port'],  args['--user'], args['--password'], args['--root'])
         elif args['setup']:
             user_setup(args['<ip>'], args['--port'], args['--user'], args['--password'], args['--root'])
-        elif args['password']:
-            user_set_password(args['--password'])
+        elif args['changepw']:
+            user_set_password(args['<ip>'], args['<user>'], args['--port'])
+        elif args['deactivate']:
+            user_deactivate(args['<ip>'], args['--port'])
