@@ -368,7 +368,7 @@ def admin_remove(ip, port, username):
         ad.user_del(username)
         #print '%s deleted sucessfully.' % username
     except Exception as e:
-	print e
+        print e
         print '%s was not found in database, delete failed' % username
 
 
@@ -409,7 +409,6 @@ def user_setup(ip, port=None, user=None, password=None, root=None): # TODO IP PO
     else:
         try:
             nick = get_mac()
-            f = OneDirFtpClient(ip, 21, user, nick, password, root)
             data = {"username": user, "root_dir": root, "nick": str(nick),
                 "is_syncing": True, "password": password, 'last_sync': "0"}
             path = os.path.expanduser('~') + '/.onedirclient/client.json'
@@ -418,7 +417,10 @@ def user_setup(ip, port=None, user=None, password=None, root=None): # TODO IP PO
                 os.mkdir(conf_folder)
             with open(path, 'w') as filename:
                 json.dump(data, filename)
-            ftpclient = OneDirFtpClient(ip, port, user, nick, password, root)
+            watch_folder = os.path.expanduser('~') + '/OneDirFiles'
+            if not os.path.exists(watch_folder):
+                os.mkdir(watch_folder)
+            # ftpclient = OneDirFtpClient(ip, port, user, nick, password, root)
             db = conf_folder + '/sync.db'
             ta = TableAdder(db, 'local')
             ta.add_column('time')
@@ -431,19 +433,21 @@ def user_setup(ip, port=None, user=None, password=None, root=None): # TODO IP PO
 
 
 def user_deactivate(ip, port=None, username=None, password=None, root=None):
-    conffile = os.path.expanduser('~') + '/.onedirclient'
-    conffile = os.path.join(conffile, 'client.json')
+    folderpath = os.path.expanduser('~') + '/.onedirclient'
+    conffile = os.path.join(folderpath, 'client.json')
     conffile = os.path.abspath(conffile)
     jd = open(conffile)
     conf = json.load(jd)
     jd.close()
+    username = conf['username']
     root = conf['root_dir']
     password = conf['password']
     nick = conf['nick']
     port = 21
     f = OneDirFtpClient(ip, port, username, nick, password, root)
     f.deactivate_account()
-    os.remove(conffile)
+    # os.remove(conffile)
+    rmtree(folderpath)
 
 
 def user_set_password(ip, username=None, port=None):  # TODO IP PORT
