@@ -36,7 +36,7 @@ class ListenerContainer(object):
         raise Exception('Static class. No __init__')
 
     @staticmethod
-    def add_watch(path):
+    def add_watch(path):  # This could be problem or restarting.
         if path == '.':
             path = ListenerContainer.root_dir
         temp = ListenerContainer.watch_manager.add_watch(path, ListenerContainer.mask, rec=True)
@@ -56,7 +56,7 @@ class ListenerContainer(object):
             if path == '.':
                 path = ListenerContainer.root_dir
             else:
-                path = './' + path
+                path = './' + path  # This causes problems sometimes
         try:
             ListenerContainer.watch_manager.rm_watch(ListenerContainer.__watch_dict[path], rec=True)
             del ListenerContainer.__watch_dict[path]
@@ -64,7 +64,7 @@ class ListenerContainer(object):
             pass
 
     @staticmethod
-    def print_w():
+    def print_w():  # This is not needed
         print ListenerContainer.__watch_dict
 
 
@@ -85,7 +85,8 @@ class EventHandler(pyinotify.ProcessEvent):
                         ListenerContainer.add_watch(event.pathname)
                         ListenerContainer.client.mkdir(event.pathname)
                     else:
-                        while True:
+                        count = 0
+                        while True:  # This may have an unending loop
                             try:
                                 ListenerContainer.client.upload(event.pathname)
                                 break
@@ -100,7 +101,7 @@ class EventHandler(pyinotify.ProcessEvent):
                         x = [timer, 'UPLOAD', event.pathname]
                     ListenerContainer.sync_db.quick_push(x)
         except:
-            pass
+            reset()
 
     def process_IN_CLOSE_WRITE(self, event):
         if self.checks(event):
@@ -109,12 +110,10 @@ class EventHandler(pyinotify.ProcessEvent):
                     ListenerContainer.add_watch(event.pathname)
                     ListenerContainer.client.mkdir(event.pathname)
                 else:
-                    while True:
+                    while True:  # This may have an unending loop
                             try:
                                 ListenerContainer.client.upload(event.pathname)
                                 break
-                            # except SocketError or error_reply:
-                            #     reset()
                             except IOError:
                                 break
                             except not IOError as e:
@@ -144,14 +143,14 @@ class EventHandler(pyinotify.ProcessEvent):
                         x = [timer, 'DELFILE', event.pathname]
                     ListenerContainer.add_watch(event.pathname)
         except:
-            pass
+            reset()
 
     def process_IN_DELETE_SELF(self, event):
         try:
             if self.checks(event):
                 if ListenerContainer.is_syncing:
                     if event.dir:
-                        ListenerContainer.rm_watch(event.pathname)
+                        #ListenerContainer.rm_watch(event.pathname)
                         ListenerContainer.client.delete_folder(event.pathname)
                     else:
                         ListenerContainer.client.delete_file(event.pathname)
@@ -162,7 +161,8 @@ class EventHandler(pyinotify.ProcessEvent):
                         x = [timer, 'DELFOLDER', event.pathname]
                     else:
                         x = [timer, 'DELFILE', event.pathname]
-                    ListenerContainer.add_watch(event.pathname)
+                    # ListenerContainer.add_watch(event.pathname)   #  TODO wtf
+                    ListenerContainer.sync_db.quick_push(x)   # TODO added untested
         except:
                 reset()
 
@@ -173,7 +173,7 @@ class EventHandler(pyinotify.ProcessEvent):
             conf = json.load(jd)
             jd.close()
             ListenerContainer.is_syncing = conf['is_syncing']
-            if not conf['is_syncing']:
+            if not conf['is_syncing']:  # TODO get rup changes.
                 ListenerContainer.sync_db.connect()
             else:
                 ListenerContainer.sync_db.disconnect()
@@ -187,7 +187,7 @@ class EventHandler(pyinotify.ProcessEvent):
                     x = [timer, 'UPLOAD', event.pathname]
                     ListenerContainer.sync_db.quick_push(x)
             except:
-                pass
+                reset()
 
     def process_IN_MOVED_FROM(self, event):
         try:
@@ -245,14 +245,16 @@ class EventHandler(pyinotify.ProcessEvent):
             if ListenerContainer.move_to_folder == pathname:
                 try:
                     ListenerContainer.client.delete_folder(ListenerContainer.move_to_folder)
-                except error_perm as e:
-                    pass  # nothing to delete
+                except error_perm or error_reply:   #TODO
+                    reset()
+                    # pass  # nothing to delete
                 ListenerContainer.move_to_folder = None
             if ListenerContainer.move_to_file == pathname:
                 try:
                     ListenerContainer.client.delete_file(ListenerContainer.move_to_file)
-                except error_perm as e:
-                    pass  # nothing to delete
+                except error_perm or error_reply:  # TODO
+                    reset()
+                    # pass  # nothing to delete
                 ListenerContainer.move_to_file = None
         else:
             timer = now()
@@ -274,18 +276,20 @@ class EventHandler(pyinotify.ProcessEvent):
             if ListenerContainer.move_to_folder:
                 try:
                     ListenerContainer.client.delete_folder(ListenerContainer.move_to_folder)
-                except error_perm:
-                    pass  # nothing to delete
-                except error_reply:
+                except error_perm or error_reply:  #TODO
                     reset()
+                #     pass  # nothing to delete
+                # except error_reply:
+                #     reset()
                 ListenerContainer.move_to_folder = None
             if ListenerContainer.move_to_file:
                 try:
                     ListenerContainer.client.delete_file(ListenerContainer.move_to_file)
-                except error_perm:
-                    pass  # nothing to delete
-                except error_reply:
+                except error_perm or error_reply:  # TODO
                     reset()
+                #     pass  # nothing to delete
+                # except error_reply:
+                #     reset()
                 ListenerContainer.move_to_file = None
             if event.pathname[-1] == '~':  # Temp file
                 return False
@@ -392,7 +396,7 @@ class ReverseClient():
         os.remove(path)
 
 
-class ForwardClient(object):
+class ForwardClient(object):  # TODO RESETS ... can do it bellow
     # def __init__(self, client):
     #     self.client = client
     #     self.mf = None
@@ -477,8 +481,9 @@ def merge_lists(server_list, client_list):
             x = ListenerContainer.client.gettime()
             st = int(x)
             break
-        except ValueError:
-            pass
+        except ValueError:  # TODO
+            reset()
+            # pass
     ###{{{
     # IDEA: Move bellow up into try
     # Get rid of while loop
@@ -567,8 +572,9 @@ def checker():
                 x = str(x).split(':')[1]
                 if x == 'sync':
                     ListenerContainer.client.i_am(ListenerContainer.nick)
-            except:
-                pass
+            except:  # TODO
+                reset()
+                # pass
             counter += 1
             if counter == 3:
                 ListenerContainer.updating = False

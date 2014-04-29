@@ -374,7 +374,8 @@ def admin_change_password(ip, port, username, password):
     try:
         ad.change_user_password(username, password)
         print '%s password is now changed' % username
-    except:
+    except Exception as e:
+        print e
         print 'Password change failed: %s not found.' % username
 
 
