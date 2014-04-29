@@ -16,6 +16,7 @@ Usage:
     onedir_runner.py client admin remove <ip> <user> [--port=<nu>]
     onedir_runner.py client admin changepw <user> <password> <ip> [--port=<nu>]
     onedir_runner.py client admin getlog <ip> [--port=<nu>]
+    onedir_runner.py client admin usage <ip> [--port=<nu>] [--user=<name>]
 
 Options:
     -h --help
@@ -384,11 +385,16 @@ def admin_change_password(ip, port, username, password):
 
 def admin_getlog(ip, port):
     ad = get_admin(ip, port)
-    #ad.get_log()
     with open(ad.get_log(), 'r') as f:
         output = f.read()
     print output
 
+def admin_usage(ip, port, user=None):
+    ad = get_admin(ip, port)
+    if not user:
+        ad.count_files(None)
+    else:
+        ad.count_files('./%s' % user)
 
 def get_admin(ip, port):  # TODO not started
     conf = os.path.expanduser('~') + '/.onedirclient/client.json'
@@ -535,6 +541,8 @@ if __name__ == '__main__':
                 admin_change_password(args['<ip>'], args['--port'], args['<user>'], args['<password>'])
             elif args['getlog']:
                 admin_getlog(args['<ip>'], args['port'])
+            elif args['usage']:
+                admin_usage(args['<ip>'], args['port'], args['--user'])
         elif args['start']:
             start_client(args['<ip>'], args['--port'])
         elif args['sync']:
