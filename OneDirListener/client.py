@@ -287,10 +287,9 @@ class OneDirAdminClient(OneDirFtpClient):
         for f in helper.files:
             count+=1
             x += self.size('%s/%s' % (server_path, f))
-        #print str(server_path)+": ("+str(count)+", "+str(x)+")"
         return (count, x)
 
-    def count_files(self, folder_name):
+    def count_files(self, user_name=None):
         """
         Gets the number and size of files for a user from the server.
 
@@ -299,18 +298,23 @@ class OneDirAdminClient(OneDirFtpClient):
         print 
         totalCount=0
         totalSpace=0
+        #on_server = os.path.relpath(user_name, self.root_dir)
+        
+        if not user_name:
+            for user in self.get_user_list():
+                x = self.__count_files('./%s' % (user[0]), 0.0, 0) 
+                totalCount += x[0]
+                totalSpace += x[1]
+                print user[0]+": (Files: "+str(x[0])+", Space: "+str(x[1])+" bytes)"
+            print "--------------------------------------"
+            print "Total: (Files: "+str(totalCount)+", Space: "+str(totalSpace)+" bytes)"
+            print 
+        else:
+            x = self.__count_files('./%s' % (user_name), 0.0, 0) 
+            totalCount = x[0]
+            totalSpace = x[1]
+            print user_name+": (Files: "+str(x[0])+", Space: "+str(x[1])+" bytes)"
 
-        on_server = os.path.relpath('.', self.root_dir)
-        for user in self.get_user_list():
-            x = self.__count_files('./%s' % (user[0]), 0.0, 0) 
-            totalCount += x[0]
-            totalSpace += x[1]
-            print user[0]+": (Files: "+str(x[0])+", Space: "+str(x[1])+" bytes)"
-        print "--------------------------------------"
-        print "Total: (Files: "+str(totalCount)+", Space: "+str(totalSpace)+" bytes)"
-        print 
-
-        #print "Total: (Number of Files: "+str(x[0])+", Total Space: "+str(x[1]) + ")"
         return True
 
 
