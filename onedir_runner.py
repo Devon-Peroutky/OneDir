@@ -412,6 +412,7 @@ def user_signup(ip, port=None, user=None, password=None, root=None):
 def user_setup(ip, port=None, user=None, password=None, root=None): # TODO IP PORT
     if not user:
         print 'TODO'
+        user=raw_input("Enter your username: ")
     else:
         try:
             nick = get_mac()
@@ -433,7 +434,7 @@ def user_setup(ip, port=None, user=None, password=None, root=None): # TODO IP PO
             ta.add_column('cmd')
             ta.add_column('line')
             ta.commit()
-            print 3
+            # print 3
         except:
             print 'invalid credentials'
 
@@ -525,7 +526,7 @@ if __name__ == '__main__':
             else:
                 GuidedSetup()
         elif args['useradd']:
-            server_user_add(args['username'], args['password'], args['--admin'])
+            server_user_add(args['<username>'], args['<password>'], args['--admin'])
     if args['client']:  # TODO all untested
         if args['admin']:
             if not args['--port']:
