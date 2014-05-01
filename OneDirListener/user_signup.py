@@ -6,6 +6,7 @@ from client import *
 from getpass import getpass
 import json
 from uuid import getnode as get_mac
+from emailer import Emailer
 #from onedir_runner import root_check
 
 
@@ -15,12 +16,13 @@ def main(ip, port, username=None, password=None, root_dir=None):
     """
     client = OneDirNoAuthClient(ip, port)
     nickname = get_mac()
+    email = raw_input("Welcome new user! Enter in your email address: " )
     if not username:  #paramaters not passed in
         username = raw_input("Welcome new user! Enter in your desired username: ")
         temppw = None
         while password is None:
             try:
-                temppw = client.user_sign_up(username)
+                temppw = client.user_sign_up(username, email)
                 break
             except KeyError:
                 username = raw_input("Sorry, that username is taken. Please enter another username: ")
@@ -63,7 +65,7 @@ def main(ip, port, username=None, password=None, root_dir=None):
                 if i == 2:
                     print 'Too many tries. Aborting.'
                     sys.exit(1)
-        create_user(ip, port, username, password, temppw, nickname, root_dir)
+        create_user(ip, port, username, password, temppw, nickname, root_dir, email)
     else:  #parameters passed in
         try:
             root_check(root_dir)
@@ -101,9 +103,9 @@ def root_check(root_dir):
                     print prompt
 
 
-def create_user(ip, port, username, password, temppw, nickname, root_dir):
+def create_user(ip, port, username, password, temppw, nickname, root_dir, email):
     data = {"username": username, "root_dir": root_dir, "nick": str(nickname),
-            "is_syncing": True, "password": password, 'last_sync': "0"}
+            "is_syncing": True, "password": password, 'last_sync': "0", "email": str(email)}
     path = os.path.expanduser('~') + '/.onedirclient/client.json'
     conf_folder = os.path.expanduser('~') +'/.onedirclient'
     if not os.path.exists(conf_folder):
@@ -112,6 +114,7 @@ def create_user(ip, port, username, password, temppw, nickname, root_dir):
         json.dump(data, filename)
     ftpclient = OneDirFtpClient(ip, port, username, nickname, temppw, root_dir)
     ftpclient.set_password(temppw, password)
+    Emailer(email, username).sendEmail()
     db = conf_folder + '/sync.db'
     ta = TableAdder(db, 'local')
     ta.add_column('time')

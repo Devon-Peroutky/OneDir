@@ -4,7 +4,7 @@
 Usage:
     onedir_runner.py server start [-v | --verbose] [-t | --testing][--port=<nu>]
     onedir_runner.py server setup [(--root=<path> --user=<db> --password=<pw>)]
-    onedir_runner.py server useradd <username> <password> [(-a | --admin)]
+    onedir_runner.py server useradd <username> <password> <email> [(-a | --admin)]
     onedir_runner.py client start <ip> [--port=<nu>]
     onedir_runner.py client sync [-o | --once]
     onedir_runner.py client signup <ip> [--port=<nu>] [(--user=<name> --password=<pw> --root=<path>)]
@@ -199,7 +199,6 @@ def prompt_setup(root_dir, admin, password):
     root_check(root_dir)
     quick_setup(root_dir, admin, password)
 
-
 def quick_setup(root_dir, admin, password):
     here = os.getcwd()
     template = {'root': root_dir, 'user_db': '%s/users.db' % here, 'user_table': 'users',
@@ -207,7 +206,7 @@ def quick_setup(root_dir, admin, password):
     with open('conf.json', 'w') as w:
         json.dump(template, w)
     ta = TableAdder(template['user_db'], template['user_table'])
-    cols = ['name', 'status', 'password', 'salt', 'welcome', 'goodbye']
+    cols = ['name', 'status', 'password', 'salt', 'welcome', 'goodbye', 'email']
     for col in cols:
         if col == 'status':
             ta.add_column(col, 'integer')
@@ -233,7 +232,7 @@ def server_user_add(username, password, is_admin=False):
     with TableManager(str(template['user_db']), str(template['user_table'])) as tm:
         salt = gen_salt()
         password = gen_hash(password, salt)
-        row = [username, status, password, salt, 'welcome', 'goodbye']
+        row = [username, status, password, salt, 'welcome', 'goodbye', 'devonperoutky@gmail.com']
         tm.quick_push(row)
     ta = TableAdder(template['user_logs'], username)
     cols = ['time', 'ip', 'cmd', 'line', 'arg']
@@ -288,7 +287,7 @@ def server_start_testing(is_verbose=False, port=None):
         rmtree(root)
     os.mkdir(root)
     ta = TableAdder(user_db, user_table)
-    cols = ['name', 'status', 'password', 'salt', 'welcome', 'goodbye']
+    cols = ['name', 'status', 'password', 'salt', 'welcome', 'goodbye', 'email']
     for col in cols:
         if col == 'status':
             ta.add_column(col, 'integer')
@@ -525,7 +524,7 @@ if __name__ == '__main__':
             else:
                 GuidedSetup()
         elif args['useradd']:
-            server_user_add(args['username'], args['password'], args['--admin'])
+            server_user_add(args['<username>'], args['<password>'], args['<email>'], args['--admin'])
     if args['client']:  # TODO all untested
         if args['admin']:
             if not args['--port']:

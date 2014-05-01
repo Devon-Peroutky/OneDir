@@ -62,12 +62,12 @@ class handler(FTPHandler):
         try:
             args = self.__strip_path_to_list(line)
             msg = "Expected 3 Args: text, int, txt, txt. Recieved: %s" % ' '.join(args)
-            if not len(args) == 3:
+            if not len(args) == 4:
                 raise AttributeError(msg + ' ' + str(len(args)))
             args[1] = int(args[1])
             if not (args[1] == 0 or args[1] == 1):
                 raise AttributeError(msg)
-            rep = self.__user_add(args[0], int(args[1]), args[2])
+            rep = self.__user_add(args[0], int(args[1]), args[2], str(args[3]))
             self.respond('200 %s' % rep)
         except:
             err = sys.exc_info()[1]
@@ -240,11 +240,12 @@ class handler(FTPHandler):
 
     def ftp_SITE_SIGNUP(self, line):
         try:
+            print "LINE: " + str(line)
             arg = self.__strip_path_to_list(line)
-            if not len(arg) == 1:
-                msg = 'Expecting a single arg. Recieved : %s' % str(arg)
+            if not len(arg) == 2:
+                msg = 'Expecting args. Recieved : %s' % str(arg)
                 raise AttributeError(msg)
-            rep = self.__sign_up(arg[0])
+            rep = self.__sign_up(arg[0], str(arg[1]))
             self.respond('200 %s' % rep)
         except:
             err = sys.exc_info()[1]
@@ -261,7 +262,7 @@ class handler(FTPHandler):
         args[0] = args[0].split('/')[-1]
         return args
 
-    def __user_add(self, name, status, password): 
+    def __user_add(self, name, status, password, email): 
         """ 
         Private: do not call 
         @param name: A unique username
@@ -275,7 +276,7 @@ class handler(FTPHandler):
             raise AttributeError("'%s' name taken." % name)
         salt = gen_salt()
         password = gen_hash(str(password), salt)
-        args = [name, status, password, salt, 'welcome', 'goodbye']
+        args = [name, status, password, salt, 'welcome', 'goodbye', email]
         self.users.quick_push(args)
         self.users.disconnect()
         ta = TableAdder(container.get_shares_db(), name)
@@ -417,7 +418,7 @@ class handler(FTPHandler):
             self. __update_user_actions(args[0], 'FLAG', args[1])
         return 'Flag set'      
     
-    def __sign_up(self, name): 
+    def __sign_up(self, name, email): 
         """ 
         Private: do not call 
         @param name: A unique username
@@ -430,7 +431,7 @@ class handler(FTPHandler):
         plain = ''.join(choice(letters) for i in range(10))
         salt = gen_salt()
         password = gen_hash(plain, salt)
-        args = [name, 0, password, salt, 'welcome', 'goodbye']
+        args = [name, 0, password, salt, 'welcome', 'goodbye', email]
         self.users.quick_push(args)
         self.users.disconnect()
         ta = TableAdder(container.get_shares_db(), name)

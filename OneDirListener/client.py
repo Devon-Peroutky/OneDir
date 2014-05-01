@@ -12,13 +12,13 @@ class OneDirNoAuthClient(object):
         self.ftp = FTP()
         self.ftp.connect(host, port)
     
-    def user_sign_up(self, username):
+    def user_sign_up(self, username, email):
         """
         Signs up an new users. 
         @return:  The password if the sign up was successful.
         @raises KeyError: If the username is taken.
         """
-        rep = self.ftp.sendcmd('site signup %s' % username)
+        rep = self.ftp.sendcmd('site signup %s %s' % (username, email))
         rep = rep.split(' ')
         if rep[1] == 'False':
             raise KeyError('Username taken')
